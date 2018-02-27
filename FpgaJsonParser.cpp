@@ -8,12 +8,18 @@ JNIEXPORT jboolean JNICALL Java_FpgaJsonParser_booleanMethod
   return !boolean;
 }
 
-JNIEXPORT jbyteArray JNICALL Java_FpgaJsonParser_parseJson
-  (JNIEnv *env, jobject obj, jstring json_str, jstring schemaFieldNames, jintArray schemaFieldTypes) {
-  cout<<"hello jni"<<endl;
-  const char* jsonStr = env->GetStringUTFChars(json_str, 0);
+JNIEXPORT jboolean JNICALL Java_FpgaJsonParser_setSchema
+  (JNIEnv *env, jobject, jstring schemaFieldNames, jintArray schemaFieldTypes) {
   const char* fieldNames = env->GetStringUTFChars(schemaFieldNames, 0);
   jint* fieldTypes = env->GetIntArrayElements(schemaFieldTypes, 0); 
+  return true;
+}
+
+
+JNIEXPORT jbyteArray JNICALL Java_FpgaJsonParser_parseJson
+  (JNIEnv *env, jobject obj, jstring json_str)  {
+  cout<<"hello jni"<<endl;
+  const char* jsonStr = env->GetStringUTFChars(json_str, 0);
   //we want return two UnsafeRow of "{123, hello, json}\n{456, hello, fpga}", total 82 bytes
   jbyteArray ret = env->NewByteArray(6);
   //jbyte unsafeRows = populateUnsafeRows();

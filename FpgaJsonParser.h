@@ -17,11 +17,19 @@ JNIEXPORT jboolean JNICALL Java_FpgaJsonParser_booleanMethod
 
 /*
  * Class:     FpgaJsonParser
+ * Method:    setSchema
+ * Signature: (Ljava/lang/String;[I)Z
+ */
+JNIEXPORT jboolean JNICALL Java_FpgaJsonParser_setSchema
+  (JNIEnv *, jobject, jstring, jintArray);
+
+/*
+ * Class:     FpgaJsonParser
  * Method:    parseJson
- * Signature: (Ljava/lang/String;Ljava/lang/String;[I)[B
+ * Signature: (Ljava/lang/String;)[B
  */
 JNIEXPORT jbyteArray JNICALL Java_FpgaJsonParser_parseJson
-  (JNIEnv *, jobject, jstring, jstring, jintArray);
+  (JNIEnv *, jobject, jstring);
 
 #ifdef __cplusplus
 }

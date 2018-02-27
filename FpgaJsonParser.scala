@@ -1,7 +1,8 @@
 class FpgaJsonParser {
   // --- Native methods
   @native def booleanMethod(b: Boolean): Boolean
-  @native def parseJson(s: String, schemaFieldNames: String, schemaFieldTypes: Array[Int]): Array[Byte]
+  @native def setSchema(schemaFieldNames: String, schemaFieldTypes: Array[Int]): Boolean
+  @native def parseJson(s: String): Array[Byte]
 }
 
 object FpgaJsonParser {
@@ -14,7 +15,8 @@ object FpgaJsonParser {
     val schemaFieldTypes = Array(3,7)
     val parser = new FpgaJsonParser
     val bool = parser.booleanMethod(true)
-    val text = parser.parseJson(str, schemaFieldNames, schemaFieldTypes)
+    val bool2 = parser.setSchema(schemaFieldNames, schemaFieldTypes);
+    val text = parser.parseJson(str)
 
     println(s"booleanMethod: $bool")
     println(text.deep.mkString("\n"))
