@@ -1,6 +1,5 @@
 #include "FpgaJsonParser.h"
 #include "unsafeRow.h"
-#include <iostream>
 using namespace std;
 
 JNIEXPORT jboolean JNICALL Java_FpgaJsonParser_booleanMethod
