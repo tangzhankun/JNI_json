@@ -28,7 +28,7 @@ typedef struct unsafe_row
   int fields;
   int nullbits_bytes;
   int total_bytes;
-  char *row;
+  signed char *row;
 } unsafe_row_t;
 
 typedef std::vector<json_schema_field_t> json_schema_t;
@@ -54,12 +54,12 @@ void unsafe_row_set_nullbit(unsafe_row_t &row, int index, bool nullable)
   return;
 }
 
-char* create_fake_row(int count) {
+signed char* create_fake_row(int count) {
   unsafe_row row_vec; 
 
   unsafe_row_t row;
   json_schema_t schema;
-  row.row = new char[4096];
+  row.row = new signed char[4096];
   json_schema_field_t f1 = {"ID", IntegerType, true};
   json_schema_field_t f2 = {"TEXT", StringType, true};
   schema.push_back(f1);
