@@ -49,33 +49,32 @@ void unsafe_row_init(unsafe_row_t &row, json_schema_t &schema)
 void unsafe_row_set_nullbit(unsafe_row_t &row, int index, bool nullable)
 {
   int offset = index / 8;
-  row.row[offset] |= nullable << (index % 8);
+  row.row[offset+4] |= nullable << (index % 8);
 
   return;
 }
 
 signed char* create_fake_row(int count) {
-  unsafe_row row_vec; 
 
-  unsafe_row_t row;
-  json_schema_t schema;
-  row.row = new signed char[4096];
-  json_schema_field_t f1 = {"ID", IntegerType, true};
-  json_schema_field_t f2 = {"TEXT", StringType, true};
-  schema.push_back(f1);
-  schema.push_back(f2);
-  unsafe_row_init(row, schema);
-  std::string value = "hello, json";
-  for(int i = 1; i<=count; i++){
-    int id = i;
-    int index = 0;
-    unsafe_row_set_nullbit(row, index, false);
-    *(int32_t *)(row.row + row.nullbits_bytes + 8 * index) = id;
-    index++;
-    *(uint32_t*)(row.row + row.nullbits_bytes + 8 * index) = value.length();
-    *(uint32_t*)(row.row + row.nullbits_bytes + 8 * index + 4) = row.total_bytes;
-    memcpy(row.row + row.total_bytes, value.c_str(), value.length());
-    row.total_bytes += (value.length() + 7) / 8 * 8;
-  }
-  return row.row;
+  //unsafe_row_t row;
+  //json_schema_t schema;
+  //json_schema_field_t f1 = {"ID", IntegerType, true};
+  //schema.push_back(f1);
+  //unsafe_row_init(row, schema);
+  //std::string value = "hello, json";
+  static signed char ret[] = {16,0,0,0,0,0,0,0,0,0,0,0,123,0,0,0,0,0,0,0};
+ 
+  //for(int i = 1; i<=count; i++){
+  //  int id = 123;
+  //  int index = 0;
+  //  *(int32_t *)row.row = 16;// first int indicate row size is 16
+  //  row.row[4] |= 0;
+  //  *(int32_t *)(row.row + row.nullbits_bytes + 8 * index) = id;
+  //  index++;
+  //  *(uint32_t*)(row.row + row.nullbits_bytes + 8 * index) = value.length();
+  //  *(uint32_t*)(row.row + row.nullbits_bytes + 8 * index + 4) = row.total_bytes;
+  //  memcpy(row.row + row.total_bytes, value.c_str(), value.length());
+  //  row.total_bytes += (value.length() + 7) / 8 * 8;
+  //}
+  return ret;
 }
