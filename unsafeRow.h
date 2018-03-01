@@ -70,20 +70,23 @@ signed char* create_fake_row(int count, int& buffer_size) {
   static signed char ret[] = {16,0,0,0,0,0,0,0,0,0,0,0,123,0,0,0,0,0,0,0};
   //123  hello,json
   static signed char ret2[] = {40,0,0,0,0,0,0,0,0,0,0,0,123,0,0,0,0,0,0,0,10,0,0,0,24,0,0,0,104,101,108,108,111,44,106,115,111,110,0,0,0,0,0,0};
-  int current_row_pos = 0; 
-  //for(int i = 1; i<=count; i++){
-    int id = 123;
+  int current_row_pos = 0;
+  const int header_size = 4;
+  for(int i = 1; i<=count; i++){
+    int id = i;
     int index = 0;
+    current_row_pos += header_size;
     //null bits
-    row.row[current_row_pos + 4] |= 0;
-    *(int32_t *)(row.row + 4*1 + row.nullbits_bytes + 8 * index) = id;
+    row.row[current_row_pos] |= 0;
+    *(int32_t *)(row.row + current_row_pos + row.nullbits_bytes + 8 * index) = id;
     index++;
-    *(uint32_t*)(row.row + 4*1 + row.nullbits_bytes + 8 * index) = value.length();
-    *(uint32_t*)(row.row + 4*1 + row.nullbits_bytes + 8 * index + 4) = row.total_bytes;
-    memcpy(row.row + 4 + row.total_bytes, value.c_str(), value.length());
+    *(uint32_t*)(row.row + current_row_pos + row.nullbits_bytes + 8 * index) = value.length();
+    *(uint32_t*)(row.row + current_row_pos + row.nullbits_bytes + 8 * index + 4) = row.total_bytes;
+    memcpy(row.row + current_row_pos + row.total_bytes, value.c_str(), value.length());
     row.total_bytes += (value.length() + 7) / 8 * 8;
-  //}
-  buffer_size = row.total_bytes + 4;
-  *(int32_t *)row.row = row.total_bytes;//set row size header
-  return ret2;
+    *(int32_t *)(row.row + current_row_pos - header_size) = row.total_bytes;//set row_size header
+    current_row_pos += row.total_bytes;
+  }
+  buffer_size = current_row_pos;
+  return row.row;
 }
