@@ -2,8 +2,8 @@
 #include "unsafeRow.h"
 using namespace std;
 
-jbyte* populateUnsafeRows(int count){
- return create_fake_row(count);  
+jbyte* populateUnsafeRows(int count, int& buffer_size){
+ return create_fake_row(count, buffer_size);
 }
 
 JNIEXPORT jboolean JNICALL Java_org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl_setSchema
@@ -18,12 +18,12 @@ JNIEXPORT jbyteArray JNICALL Java_org_apache_spark_sql_execution_datasources_jso
   (JNIEnv *env, jobject obj, jstring json_str) {
   cerr<<"call parseJson[JNI] - this method return byteArray"<<endl;
   const char* jsonStr = env->GetStringUTFChars(json_str, 0);
-  //we want return two UnsafeRow of "{123, hello, json}\n{456, hello, fpga}", total 82 bytes
   int count = 10;
-  jbyteArray ret = env->NewByteArray(20);
-  jbyte *unsafeRows = populateUnsafeRows(count);
-  //jbyte unsafeRows[] = {'1','2','3','4','5','6'};
-  env->SetByteArrayRegion(ret, 0, 20, unsafeRows);
+  int buffer_size = 0;
+  jbyte *unsafeRows = populateUnsafeRows(count, buffer_size);
+  cerr<<"unsafeRow buffer size is " << buffer_size << endl;
+  jbyteArray ret = env->NewByteArray(buffer_size);
+  env->SetByteArrayRegion(ret, 0, buffer_size, unsafeRows);
   return ret; 
 }
 
@@ -42,6 +42,7 @@ JNIEXPORT void JNICALL Java_org_apache_spark_sql_execution_datasources_json_Fpga
 
 
 int main() {
-  create_fake_row(1);
+  int size = 0;
+  create_fake_row(1, size);
   return 0;
 }
