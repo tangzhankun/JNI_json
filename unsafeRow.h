@@ -42,7 +42,7 @@ void unsafe_row_init(unsafe_row_t &row, json_schema_t &schema)
 {
   row.fields = schema.size();
   row.nullbits_bytes = ((row.fields + 63) / 64) * 8;
-  row.total_bytes = 8 * row.fields + row.nullbits_bytes;
+  row.total_bytes = (8 * row.fields + row.nullbits_bytes);
 
   return;
 }
@@ -54,8 +54,8 @@ void unsafe_row_set_nullbit(unsafe_row_t &row, int index, bool nullable)
 
   return;
 }
-
-signed char* create_fake_row(int count, int& buffer_size) { 
+/*
+signed char* create_fake_row_with_row_size(int count, int& buffer_size) { 
   unsafe_row_t row;
   row.row = new signed char[4096];
   memset(row.row, 0, 4096);
@@ -88,5 +88,44 @@ signed char* create_fake_row(int count, int& buffer_size) {
     current_row_pos += row.total_bytes;
   }
   buffer_size = current_row_pos;
+  return row.row;
+}
+*/
+
+// only support maximum 4 fields( double/String). String with fixed length 128 bytes
+// DDDD 40 bytes
+// DDDS 168 bytes
+// DDSS 296 bytes
+// DSSS 424 bytes
+// SSSS 552 bytes
+signed char* create_fake_row_without_row_size(int count, int& buffer_size) { 
+  unsafe_row_t row;
+  row.row = new signed char[4096];
+  memset(row.row, 0, 4096);
+  json_schema_t schema;
+  json_schema_field_t f1 = {"ID", IntegerType, true};
+  json_schema_field_t f2 = {"TEXT", StringType, true};
+  schema.push_back(f1);
+  schema.push_back(f2);
+  unsafe_row_init(row, schema);
+  std::string value[] = {"hello,a simple json string", "hello, this is a simple text", "This is a string", "This is a text"};
+  int current_row_pos = 0;
+  row.total_bytes = 0;
+  cerr<<"[JNI] current row size is:"<<std::dec<<row.total_bytes<<endl;
+  for(int i = 1; i<=count; i++){
+    int id = i;
+    int index = 0;
+    //null bits
+    row.row[current_row_pos] |= 0;
+    *(int32_t *)(row.row + current_row_pos + row.nullbits_bytes + 8 * index) = id;
+    index++;
+    *(uint32_t*)(row.row + current_row_pos + row.nullbits_bytes + 8 * index) = value[i%4].length();
+    *(uint32_t*)(row.row + current_row_pos + row.nullbits_bytes + 8 * index + 4) = (8 * schema.size() + 8);
+    memcpy(row.row + current_row_pos + 8 * schema.size() + 8, value[i%4].c_str(), value[i%4].length());
+    row.total_bytes += (8*schema.size() + 8 + 128);
+    cerr<<"[JNI] current row_size is:"<<row.total_bytes<<endl;
+    current_row_pos += (8*schema.size() + 8 + 128);
+  }
+  buffer_size = row.total_bytes;
   return row.row;
 }

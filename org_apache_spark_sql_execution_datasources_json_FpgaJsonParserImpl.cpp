@@ -18,7 +18,7 @@ jint throwException( JNIEnv *env, char *message ) {
 
 
 jbyte* populateUnsafeRows(int count, int& buffer_size){
-  return create_fake_row(count, buffer_size);
+  return create_fake_row_without_row_size(count, buffer_size);
 }
 
 int init_accelerator(bool use_hardware) {
@@ -99,7 +99,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_apache_spark_sql_execution_datasources_jso
   (JNIEnv *env, jobject obj, jstring json_str) {
   cerr<<"call parseJson[JNI] - this method return byteArray"<<endl;
   const char* jsonStr = env->GetStringUTFChars(json_str, 0);
-  int count = 10;
+  int count = 5;
   int buffer_size = 0;
   jbyte *unsafeRows = populateUnsafeRows(count, buffer_size);
   cerr<<"unsafeRow buffer size is " << buffer_size << endl;
@@ -124,6 +124,6 @@ JNIEXPORT void JNICALL Java_org_apache_spark_sql_execution_datasources_json_Fpga
 
 int main() {
   int size = 0;
-  create_fake_row(1, size);
+  create_fake_row_without_row_size(1, size);
   return 0;
 }
