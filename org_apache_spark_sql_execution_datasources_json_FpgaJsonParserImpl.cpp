@@ -2,6 +2,8 @@
 #include "unsafeRow.h"
 #include "wasai/libgendma.h"
 using namespace std;
+
+#define RESULT_SIZE 60*1024*1024
 // device fd of /dev/wasai0
 static int fpga_fd;
 static int MAX_FIELDS = 4;
@@ -64,7 +66,7 @@ int convertStringToAscii(char* str, int str_size, unsigned int* fourAssicii, int
 void set_schema(const char* fieldNames, jint size, jint* fieldTypes) {
  //split fieldNames str with ","
  // only support 4 field
- //wasai_setschema(fpga_fd, 0x1111);
+ //wasai_setschema(fpga_fd, 0b1111);
   int field_index = 0;
   char* pch = strtok( const_cast<char *>(fieldNames), ",");
   int number_count = 4;
@@ -76,6 +78,7 @@ void set_schema(const char* fieldNames, jint size, jint* fieldTypes) {
     convertStringToAscii(pch, strlen(pch), fourAscii, number_count);
     cerr<<"ascii parameters:"<<std::hex<<fourAscii[0]<<" "<<std::hex<<fourAscii[1]<<" "<<std::hex<<fourAscii[2]<<" "<<std::hex<<fourAscii[3]<<endl;
     //call wasai_setschema and setjsonkey API
+    // wasai_setschema(fpga_fd, field_index, fourAscii[0], fourAscii[1], fourAscii[2], fourAscii[3]);
     pch = strtok(NULL, ",");
     field_index++;
   }
@@ -99,12 +102,22 @@ JNIEXPORT jbyteArray JNICALL Java_org_apache_spark_sql_execution_datasources_jso
   (JNIEnv *env, jobject obj, jstring json_str) {
   cerr<<"call parseJson[JNI] - this method return byteArray"<<endl;
   const char* jsonStr = env->GetStringUTFChars(json_str, 0);
-  int count = 5;
+  jint jsonStrSize = env->GetStringLength(json_str);
+  int count = 10;
   int buffer_size = 0;
+  // dma transfer to FPGA and get row back
+  // buff = malloc(RESULT_SIZE);
+  // wasai_dma_transfer_without_file(fpga_fd, jsonStr, jsonStrSize);
+  // wasai_read_row(fpga_fd, RESULT_SIZE, &buff)
+/*
+  //fake rows
   jbyte *unsafeRows = populateUnsafeRows(count, buffer_size);
-  cerr<<"unsafeRow buffer size is " << buffer_size << endl;
+  cerr<<"unsafeRow buffer size is "<< buffer_size << endl;
   jbyteArray ret = env->NewByteArray(buffer_size);
   env->SetByteArrayRegion(ret, 0, buffer_size, unsafeRows);
+*/
+  jbyteArray ret = env->NewByteArray(RESULT_SIZE);
+  env->SetByteArrayRegion(ret, 0, RESULT_SIZE, buff);
   return ret; 
 }
 
