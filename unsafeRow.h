@@ -112,7 +112,7 @@ signed char* create_fake_row_without_row_size(int count, long& buffer_size) {
   schema.push_back(f3);
   schema.push_back(f4);
   unsafe_row_init(row, schema);
-  std::string value[] = {"hello,a simple json string", "hello, this is a simple text", "This is a string", "This is a text"};
+  std::string value[] = {"hello,a simple json string", "hello,json", "This is a string", "This is a text"};
   int current_row_pos = 0;
   row.total_bytes = 0;
   cerr<<"[JNI]current row size is:"<<std::dec<<row.total_bytes<<endl;
@@ -124,15 +124,15 @@ signed char* create_fake_row_without_row_size(int count, long& buffer_size) {
     *(int32_t *)(row.row + current_row_pos + row.nullbits_bytes + 8 * index) = id;
     index++;
 
-    *(int32_t *)(row.row + current_row_pos + row.nullbits_bytes + 8 * index) = id;
+    *(int32_t *)(row.row + current_row_pos + row.nullbits_bytes + 8 * index) = 123;
     index++;
 
-    *(int32_t *)(row.row + current_row_pos + row.nullbits_bytes + 8 * index) = id;
+    *(int32_t *)(row.row + current_row_pos + row.nullbits_bytes + 8 * index) = 123;
     index++;
 
-    *(uint32_t*)(row.row + current_row_pos + row.nullbits_bytes + 8 * index) = value[i%4].length();
+    *(uint32_t*)(row.row + current_row_pos + row.nullbits_bytes + 8 * index) = value[1].length();
     *(uint32_t*)(row.row + current_row_pos + row.nullbits_bytes + 8 * index + 4) = (8 * schema.size() + 8);
-    memcpy(row.row + current_row_pos + 8 * schema.size() + 8, value[i%4].c_str(), value[i%4].length());
+    memcpy(row.row + current_row_pos + 8 * schema.size() + 8, value[1].c_str(), value[1].length());
     row.total_bytes += (8*schema.size() + 8 + 128);
     cerr<<"[JNI]current row_size is:"<<row.total_bytes<<endl;
     current_row_pos += (8*schema.size() + 8 + 128);
