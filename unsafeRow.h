@@ -104,9 +104,13 @@ signed char* create_fake_row_without_row_size(int count, long& buffer_size) {
   memset(row.row, 0, 4096);
   json_schema_t schema;
   json_schema_field_t f1 = {"ID", IntegerType, true};
-  json_schema_field_t f2 = {"TEXT", StringType, true};
+  json_schema_field_t f2 = {"ID_1", IntegerType, true};
+  json_schema_field_t f3 = {"ID_2", IntegerType, true};
+  json_schema_field_t f4 = {"TEXT", StringType, true};
   schema.push_back(f1);
   schema.push_back(f2);
+  schema.push_back(f3);
+  schema.push_back(f4);
   unsafe_row_init(row, schema);
   std::string value[] = {"hello,a simple json string", "hello, this is a simple text", "This is a string", "This is a text"};
   int current_row_pos = 0;
@@ -119,6 +123,13 @@ signed char* create_fake_row_without_row_size(int count, long& buffer_size) {
     row.row[current_row_pos] |= 0;
     *(int32_t *)(row.row + current_row_pos + row.nullbits_bytes + 8 * index) = id;
     index++;
+
+    *(int32_t *)(row.row + current_row_pos + row.nullbits_bytes + 8 * index) = id;
+    index++;
+
+    *(int32_t *)(row.row + current_row_pos + row.nullbits_bytes + 8 * index) = id;
+    index++;
+
     *(uint32_t*)(row.row + current_row_pos + row.nullbits_bytes + 8 * index) = value[i%4].length();
     *(uint32_t*)(row.row + current_row_pos + row.nullbits_bytes + 8 * index + 4) = (8 * schema.size() + 8);
     memcpy(row.row + current_row_pos + 8 * schema.size() + 8, value[i%4].c_str(), value[i%4].length());
