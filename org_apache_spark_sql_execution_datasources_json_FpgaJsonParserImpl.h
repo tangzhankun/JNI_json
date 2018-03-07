@@ -26,9 +26,9 @@ JNIEXPORT jbyteArray JNICALL Java_org_apache_spark_sql_execution_datasources_jso
 /*
  * Class:     org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl
  * Method:    parseJson2
- * Signature: (Ljava/lang/String;)J
+ * Signature: (Ljava/lang/String;)[J
  */
-JNIEXPORT jlong JNICALL Java_org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl_parseJson2
+JNIEXPORT jlongArray JNICALL Java_org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl_parseJson2
   (JNIEnv *, jobject, jstring);
 
 /*

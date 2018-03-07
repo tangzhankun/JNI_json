@@ -13,13 +13,13 @@ jint throwException( JNIEnv *env, char *message ) {
     char *className = "java/lang/IllegalStateException";
     exClass = env->FindClass(className);
     if (exClass == NULL) {
-      cerr<<"unknown error happens when find java class IllegalStateException!"<<endl;
+      cerr<<"[JNI]unknown error happens when find java class IllegalStateException!"<<endl;
     }
     return env->ThrowNew(exClass, message );
 }
 
 
-jbyte* populateUnsafeRows(int count, int& buffer_size){
+jbyte* populateUnsafeRows(int count, long& buffer_size){
   return create_fake_row_without_row_size(count, buffer_size);
 }
 
@@ -40,14 +40,14 @@ int fourCharstoInt(char* buffer) {
             (unsigned char)(buffer[1]) << 16 |
             (unsigned char)(buffer[2]) << 8 |
             (unsigned char)(buffer[3]);
-  cerr<<"converting str:"<<buffer[0]<<buffer[1]<<buffer[2]<<buffer[3]<<",to:"<<std::hex<<ret<<endl;
+  cerr<<"[JNI]converting str:"<<buffer[0]<<buffer[1]<<buffer[2]<<buffer[3]<<",to:"<<std::hex<<ret<<endl;
   return ret;
 }
 
 //As "wasai_setjsonkey" required, each field name string should be converted to four int ascii values
 int convertStringToAscii(char* str, int str_size, unsigned int* fourAssicii, int numbercount) {
   if (str_size > 4*numbercount) {
-    cerr<<"Only less than 16 bytes(four int values) are supported for field name. Extra chars will be ignored"<<endl;
+    cerr<<"[JNI]Only less than 16 bytes(four int values) are supported for field name. Extra chars will be ignored"<<endl;
   }
   //split str into <numbercount> int values
   char* buff = str + str_size - 1;
@@ -73,10 +73,10 @@ void set_schema(const char* fieldNames, jint size, jint* fieldTypes) {
   unsigned int* fourAscii = new unsigned int[number_count];
   memset(fourAscii, 0, number_count*4);
   while (pch != NULL && field_index < MAX_FIELDS) {
-    cerr<<"fieldName"<<field_index<<":"<<pch<<endl;
+    cerr<<"[JNI]fieldName"<<field_index<<":"<<pch<<endl;
     //we need to transform the fieldName to four HEX value
     convertStringToAscii(pch, strlen(pch), fourAscii, number_count);
-    cerr<<"ascii parameters:"<<std::hex<<fourAscii[0]<<" "<<std::hex<<fourAscii[1]<<" "<<std::hex<<fourAscii[2]<<" "<<std::hex<<fourAscii[3]<<endl;
+    cerr<<"[JNI]ascii parameters:"<<std::hex<<fourAscii[0]<<" "<<std::hex<<fourAscii[1]<<" "<<std::hex<<fourAscii[2]<<" "<<std::hex<<fourAscii[3]<<endl;
     //call wasai_setschema and setjsonkey API
     // wasai_setschema(fpga_fd, field_index, fourAscii[0], fourAscii[1], fourAscii[2], fourAscii[3]);
     pch = strtok(NULL, ",");
@@ -86,9 +86,9 @@ void set_schema(const char* fieldNames, jint size, jint* fieldTypes) {
 
 JNIEXPORT jboolean JNICALL Java_org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl_setSchema
   (JNIEnv *env, jobject obj, jstring schemaFieldNames, jintArray schemaFieldTypes) {
-  cerr<<"call setSchema[JNI] - this method try init FPGA devices and set schema"<<endl;
+  cerr<<"[JNI]call setSchema - this method try init FPGA devices and set schema"<<endl;
   if (!init_accelerator(false)) {
-    cerr<<"Accelerator hadware is not ready!"<<endl;
+    cerr<<"[JNI]Accelerator hadware is not ready!"<<endl;
     throwException(env, "Accelerator cannot be initialized!\n");
   }
   const char* fieldNames = env->GetStringUTFChars(schemaFieldNames, 0);
@@ -100,43 +100,56 @@ JNIEXPORT jboolean JNICALL Java_org_apache_spark_sql_execution_datasources_json_
 
 JNIEXPORT jbyteArray JNICALL Java_org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl_parseJson
   (JNIEnv *env, jobject obj, jstring json_str) {
-  cerr<<"call parseJson[JNI] - this method return byteArray"<<endl;
+  cerr<<"[JNI]call parseJson - this method return byteArray"<<endl;
   const char* jsonStr = env->GetStringUTFChars(json_str, 0);
   jint jsonStrSize = env->GetStringLength(json_str);
   int count = 10;
-  int buffer_size = 0;
+  long buffer_size = 0;
   // dma transfer to FPGA and get row back
   // buff = malloc(RESULT_SIZE);
   // wasai_dma_transfer_without_file(fpga_fd, jsonStr, jsonStrSize);
   // wasai_read_row(fpga_fd, RESULT_SIZE, &buff)
-/*
+
   //fake rows
   jbyte *unsafeRows = populateUnsafeRows(count, buffer_size);
-  cerr<<"unsafeRow buffer size is "<< buffer_size << endl;
+  cerr<<"[JNI]unsafeRow buffer size is "<< buffer_size << endl;
   jbyteArray ret = env->NewByteArray(buffer_size);
   env->SetByteArrayRegion(ret, 0, buffer_size, unsafeRows);
-*/
-  jbyteArray ret = env->NewByteArray(RESULT_SIZE);
-  env->SetByteArrayRegion(ret, 0, RESULT_SIZE, buff);
   return ret; 
 }
-
-JNIEXPORT jlong JNICALL Java_org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl_parseJson2
+JNIEXPORT jlongArray JNICALL Java_org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl_parseJson2
   (JNIEnv *env, jobject obj, jstring json_str) {
-
-  cerr<<"call parseJson2[JNI] - this method return long pointer address(not implemented)"<<endl;
+  cerr<<"[JNI]call parseJson2 - this method return long pointer address and size"<<endl;
   const char* jsonStr = env->GetStringUTFChars(json_str, 0);
-  return -1;
+  jint jsonStrSize = env->GetStringLength(json_str);
+  int count = 10;
+  long buffer_size = 0;
+  // dma transfer to FPGA and get row back
+  // buff = malloc(RESULT_SIZE);
+  // wasai_dma_transfer_without_file(fpga_fd, jsonStr, jsonStrSize);
+  // wasai_read_row(fpga_fd, RESULT_SIZE, &buff)
+
+  //fake rows
+  jbyte *unsafeRows = populateUnsafeRows(count, buffer_size);
+  jlongArray ret = env->NewLongArray(2);
+  jlong address = (jlong)((void*)(unsafeRows));
+  jlong* addr = &address;
+  jlong* total_size = &buffer_size;
+  cerr<<"[JNI]the buffer addr is "<<address<<endl;
+  cerr<<"[JNI]unsafeRow buffer size is "<< *total_size << endl;
+  env->SetLongArrayRegion(ret, 0, 1, addr);
+  env->SetLongArrayRegion(ret, 1, 1, total_size);
+  return ret;
 }
 
 JNIEXPORT void JNICALL Java_org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl_close
   (JNIEnv *, jobject) {
-  cerr<<"call close[JNI] - this method should do some clean up"<<endl;
+  cerr<<"[JNI]call close - this method should do some clean up"<<endl;
 }
 
 
 int main() {
-  int size = 0;
+  long size = 0;
   create_fake_row_without_row_size(1, size);
   return 0;
 }
