@@ -66,7 +66,7 @@ int convertStringToAscii(char* str, int str_size, unsigned int* fourAssicii, int
 void set_schema(const char* fieldNames, jint size, jint* fieldTypes) {
  //split fieldNames str with ","
  // only support 4 field
- //wasai_setschema(fpga_fd, 0b1111);
+  wasai_setschema(fpga_fd, 0b0001);
   int field_index = 0;
   char* pch = strtok( const_cast<char *>(fieldNames), ",");
   int number_count = 4;
@@ -78,7 +78,7 @@ void set_schema(const char* fieldNames, jint size, jint* fieldTypes) {
     convertStringToAscii(pch, strlen(pch), fourAscii, number_count);
     cerr<<"[JNI]ascii parameters:"<<std::hex<<fourAscii[0]<<" "<<std::hex<<fourAscii[1]<<" "<<std::hex<<fourAscii[2]<<" "<<std::hex<<fourAscii[3]<<endl;
     //call wasai_setschema and setjsonkey API
-    // wasai_setschema(fpga_fd, field_index, fourAscii[0], fourAscii[1], fourAscii[2], fourAscii[3]);
+    wasai_setjsonkey(fpga_fd, field_index, fourAscii[0], fourAscii[1], fourAscii[2], fourAscii[3]);
     pch = strtok(NULL, ",");
     field_index++;
   }
@@ -87,7 +87,7 @@ void set_schema(const char* fieldNames, jint size, jint* fieldTypes) {
 JNIEXPORT jboolean JNICALL Java_org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl_setSchema
   (JNIEnv *env, jobject obj, jstring schemaFieldNames, jintArray schemaFieldTypes) {
   cerr<<"[JNI]call setSchema - this method try init FPGA devices and set schema"<<endl;
-  if (!init_accelerator(false)) {
+  if (!init_accelerator(true)) {
     cerr<<"[JNI]Accelerator hadware is not ready!"<<endl;
     throwException(env, "Accelerator cannot be initialized!\n");
   }
@@ -125,20 +125,23 @@ JNIEXPORT jlongArray JNICALL Java_org_apache_spark_sql_execution_datasources_jso
   int count = 10;
   long buffer_size = 0;
   // dma transfer to FPGA and get row back
-  // buff = malloc(RESULT_SIZE);
-  // wasai_dma_transfer_without_file(fpga_fd, jsonStr, jsonStrSize);
-  // wasai_read_row(fpga_fd, RESULT_SIZE, &buff)
-
+  unsigned char* unsafeRows = new unsigned char[RESULT_SIZE];
+  wasai_dma_transfer_without_file(fpga_fd, jsonStr, jsonStrSize);
+  wasai_read_row(fpga_fd, RESULT_SIZE, &unsafeRows);
+  buffer_size = wasa_row_total(fpga_fd);
   //fake rows
-  jbyte *unsafeRows = populateUnsafeRows(count, buffer_size);
+  // jbyte *unsafeRows = populateUnsafeRows(count, buffer_size);
+
   jlongArray ret = env->NewLongArray(2);
   jlong address = (jlong)((void*)(unsafeRows));
   jlong* addr = &address;
   jlong* total_size = &buffer_size;
-  cerr<<"[JNI]the buffer addr is "<<address<<endl;
-  cerr<<"[JNI]unsafeRow buffer size is "<< *total_size << endl;
+  cerr<<"[JNI]the buffer addr is "<<std::dec<<address<<endl;
+  cerr<<"[JNI]unsafeRow buffer size is "<<std::dec<< *total_size << endl;
   env->SetLongArrayRegion(ret, 0, 1, addr);
   env->SetLongArrayRegion(ret, 1, 1, total_size);
+  
+  wasai_destroy(fpga_fd);
   return ret;
 }
 
