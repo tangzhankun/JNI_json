@@ -2,10 +2,12 @@
 #include "unsafeRow.h"
 #include "wasai/libgendma.h"
 #include <bitset>
+#include <stdio.h>
+#include <stdlib.h>
 
 using namespace std;
 
-#define RESULT_SIZE 60*1024*1024
+#define RESULT_SIZE 900*1024*1024
 #define MAX_FIELDS 4
 // device fd of /dev/wasai0
 static int fpga_fd;
@@ -42,12 +44,13 @@ int fourCharstoInt(char* buffer) {
             (unsigned char)(buffer[1]) << 16 |
             (unsigned char)(buffer[2]) << 8 |
             (unsigned char)(buffer[3]);
-  cerr<<"[JNI]converting str:"<<buffer[0]<<buffer[1]<<buffer[2]<<buffer[3]<<",to:"<<std::hex<<"0x"<<ret<<endl;
+  //cerr<<"[JNI]converting str:"<<buffer[0]<<buffer[1]<<buffer[2]<<buffer[3]<<",to:"<<std::hex<<"0x"<<ret<<endl;
   return ret;
 }
 
 //As "wasai_setjsonkey" required, each field name string should be converted to four int ascii values
 int convertStringToAscii(char* str, int str_size, unsigned int* fourAssicii, int numbercount) {
+  memset(fourAssicii, 0, numbercount*sizeof(int));
   if (str_size > 4*numbercount) {
     cerr<<"[JNI]Only less than 16 bytes(four int values) are supported for field name. Extra chars will be ignored"<<endl;
   }
@@ -90,16 +93,24 @@ void set_schema(const char* fieldNames, jint strSize, jint* fieldTypes) {
   int number_count = 4;
   unsigned int* fourAscii = new unsigned int[number_count];
   memset(fourAscii, 0, number_count*4);
+/*
   while (pch != NULL && field_index < MAX_FIELDS) {
     cerr<<"[JNI]fieldName"<<field_index<<":"<<pch<<endl;
     //we need to transform the fieldName to four HEX value
     convertStringToAscii(pch, strlen(pch), fourAscii, number_count);
-    cerr<<"[JNI]ascii parameters:0x"<<std::hex<<fourAscii[0]<<" "<<std::hex<<fourAscii[1]<<" "<<std::hex<<fourAscii[2]<<" "<<std::hex<<fourAscii[3]<<endl;
+    //cerr<<"[JNI]ascii parameters:0x"<<std::hex<<fourAscii[0]<<" "<<std::hex<<fourAscii[1]<<" "<<std::hex<<fourAscii[2]<<" "<<std::hex<<fourAscii[3]<<endl;
     //call wasai_setschema and setjsonkey API
-    wasai_setjsonkey(fpga_fd, field_index, fourAscii[0], fourAscii[1], fourAscii[2], fourAscii[3]);
+    int index_to_set = field_index;
+    cerr<<"[JNI]wasai_setjsonkey(fpga_fd,"<< index_to_set <<", "<<std::hex<<fourAscii[0]<<", "<<std::hex<<fourAscii[1]<<", "<<std::hex<<fourAscii[2]<<", "<<std::hex<<fourAscii[3]<<")"<<endl;
+    //wasai_setjsonkey(fpga_fd, index_to_set, fourAscii[0], fourAscii[1], fourAscii[2], fourAscii[3]);
     pch = strtok(NULL, ",");
     field_index++;
   }
+*/
+  wasai_setjsonkey(fpga_fd, 0, 0x0, 0x0, 0x414343, 0x5f4e4252);
+  wasai_setjsonkey(fpga_fd, 1, 0x0, 0x4f42494c, 0x4c494e47, 0x5f544944);
+  wasai_setjsonkey(fpga_fd, 2, 0x0, 0x4e42494c, 0x4c494e47, 0x5f544944);
+  wasai_setjsonkey(fpga_fd, 3, 0x0, 0x0, 0x4f504552, 0x5f544944);
 }
 
 JNIEXPORT jboolean JNICALL Java_org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl_setSchema
@@ -110,6 +121,7 @@ JNIEXPORT jboolean JNICALL Java_org_apache_spark_sql_execution_datasources_json_
     throwException(env, "Accelerator cannot be initialized!\n");
   }
   const char* fieldNames = env->GetStringUTFChars(schemaFieldNames, 0);
+  cerr<<"Got fieldNames from scala: "<<fieldNames<<endl;
   jint fieldNamesStrsize = env->GetStringLength(schemaFieldNames);
   jint* fieldTypes = env->GetIntArrayElements(schemaFieldTypes, 0); 
   set_schema(fieldNames, fieldNamesStrsize, fieldTypes);
@@ -143,7 +155,9 @@ JNIEXPORT jlongArray JNICALL Java_org_apache_spark_sql_execution_datasources_jso
   int count = 10;
   long buffer_size = 0;
   // dma transfer to FPGA and get row back
-  unsigned char* unsafeRows = new unsigned char[RESULT_SIZE];
+  //unsigned char* unsafeRows = new unsigned char[RESULT_SIZE];
+  unsigned char* unsafeRows = malloc(RESULT_SIZE);
+  memset(unsafeRows, 0, RESULT_SIZE);
   wasai_dma_transfer_without_file(fpga_fd, jsonStr, jsonStrSize);
   wasai_read_row(fpga_fd, RESULT_SIZE, &unsafeRows);
   buffer_size = wasa_row_total(fpga_fd);
