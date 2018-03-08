@@ -1,12 +1,14 @@
 #include "org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl.h"
 #include "unsafeRow.h"
 #include "wasai/libgendma.h"
+#include <bitset>
+
 using namespace std;
 
 #define RESULT_SIZE 60*1024*1024
+#define MAX_FIELDS 4
 // device fd of /dev/wasai0
 static int fpga_fd;
-static int MAX_FIELDS = 4;
 
 jint throwException( JNIEnv *env, char *message ) {
     jclass exClass;
@@ -40,7 +42,7 @@ int fourCharstoInt(char* buffer) {
             (unsigned char)(buffer[1]) << 16 |
             (unsigned char)(buffer[2]) << 8 |
             (unsigned char)(buffer[3]);
-  cerr<<"[JNI]converting str:"<<buffer[0]<<buffer[1]<<buffer[2]<<buffer[3]<<",to:"<<std::hex<<ret<<endl;
+  cerr<<"[JNI]converting str:"<<buffer[0]<<buffer[1]<<buffer[2]<<buffer[3]<<",to:"<<std::hex<<"0x"<<ret<<endl;
   return ret;
 }
 
@@ -62,11 +64,27 @@ int convertStringToAscii(char* str, int str_size, unsigned int* fourAssicii, int
   }
 }
 
+unsigned int getFieldTypeBits(jint fieldcount, jint* fieldTypes) {
+  bitset<MAX_FIELDS> bits;
+  bits.set();
+  for (int i = 0; i < fieldcount; i++) {
+    //cerr<<"[JNI]fieldTypes["<<i<<"]"<<fieldTypes[i]<<endl;
+    if ((int)(fieldTypes[i]) != StringType) {
+      //cerr<<"[JNI]set it to 0"<<endl;
+      bits.set(i+1, 0);
+    }
+  }
+  return (unsigned int)(bits.to_ulong());
+}
 
-void set_schema(const char* fieldNames, jint size, jint* fieldTypes) {
+
+void set_schema(const char* fieldNames, jint strSize, jint* fieldTypes) {
  //split fieldNames str with ","
  // only support 4 field
-  wasai_setschema(fpga_fd, 0b0001);
+  int typeBits = getFieldTypeBits(MAX_FIELDS, fieldTypes);
+  cerr<<"[JNI]typeBits is: 0b"<<std::bitset<MAX_FIELDS>(typeBits)<<endl;
+
+  wasai_setschema(fpga_fd, typeBits);
   int field_index = 0;
   char* pch = strtok( const_cast<char *>(fieldNames), ",");
   int number_count = 4;
@@ -76,7 +94,7 @@ void set_schema(const char* fieldNames, jint size, jint* fieldTypes) {
     cerr<<"[JNI]fieldName"<<field_index<<":"<<pch<<endl;
     //we need to transform the fieldName to four HEX value
     convertStringToAscii(pch, strlen(pch), fourAscii, number_count);
-    cerr<<"[JNI]ascii parameters:"<<std::hex<<fourAscii[0]<<" "<<std::hex<<fourAscii[1]<<" "<<std::hex<<fourAscii[2]<<" "<<std::hex<<fourAscii[3]<<endl;
+    cerr<<"[JNI]ascii parameters:0x"<<std::hex<<fourAscii[0]<<" "<<std::hex<<fourAscii[1]<<" "<<std::hex<<fourAscii[2]<<" "<<std::hex<<fourAscii[3]<<endl;
     //call wasai_setschema and setjsonkey API
     wasai_setjsonkey(fpga_fd, field_index, fourAscii[0], fourAscii[1], fourAscii[2], fourAscii[3]);
     pch = strtok(NULL, ",");
