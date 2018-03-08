@@ -1,0 +1,9 @@
+wasai/
+*.out
+.o
+.so
+target/
+project
+spark-warehouse
+project
+target
