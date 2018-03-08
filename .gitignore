@@ -1,4 +1,6 @@
 wasai/
+*.swp
+*.bin
 .idea
 *.out
 .o
