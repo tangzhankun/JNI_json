@@ -29,19 +29,44 @@ object SimpleApp {
   }
 
 
-  def generateUnsafeRowBinary() : Unit = {
-    val str = "hello,json"
-    val strLen = str.length
-    val paddings = Array.fill[Byte](128-(strLen + 7)/8 * 8)(0)
-    println("padding size is " + paddings.size)
-    val rows = Seq(
-      Row(1, 123, 123, str),
-      Row(2, 123, 123, str),
-      Row(3, 123, 123, str),
-      Row(4, 123, 123, str),
-      Row(5, 123, 123, str))
-    val unsafeRows = rows.map(row => toUnsafeRow(row, Array(IntegerType, IntegerType, IntegerType, StringType)))
-    val bos = new BufferedOutputStream(new FileOutputStream("./unsafeRow.bin"))
+  def rightPad(old: String): String = {
+    val paddings = Array.fill[Byte](128-old.length)(0)
+    val newStr = old + (paddings.map(_.toChar)).mkString
+    // this padd with space
+    // val newStr = f"$old%-128s"
+    println("fomr " + old + " to " + newStr + ", length:" + newStr.length)
+    newStr
+  }
+
+  def generateRows(spark : SparkSession, binname : String): Seq[UnsafeRow] = {
+    binname match {
+      case "people.bin" => {
+        val str = rightPad("hello,json")
+        val rows = Seq(
+          Row(1, 123, 123, str),
+          Row(2, 123, 123, str),
+          Row(3, 123, 123, str),
+          Row(4, 123, 123, str),
+          Row(5, 123, 123, str))
+        rows.map(row => toUnsafeRow(row, Array(IntegerType, IntegerType, IntegerType, StringType)))
+      }
+      case "Small.bin" => {
+        val rows = Seq(
+          Row(rightPad("1O0311G80610ydH10G00"), rightPad("B210701"), rightPad("B210701"), rightPad("13886092665")),
+          Row(rightPad("1O0511G80610ydH10G00"), rightPad("B210253"), rightPad("B210253"), rightPad("13986210557")),
+          Row(rightPad("3s0103015G0"), rightPad("B210623"), rightPad("B210623"), rightPad("13638655755")),
+          Row(rightPad("2O05111Zyd3zE"), rightPad("B2186"), rightPad("B2186"), rightPad("13871123393")),
+          Row(rightPad("31011H03iG0"), rightPad("B210378"), rightPad("B210378"), rightPad("13871227723")))
+        rows.map(row => toUnsafeRow(row, Array(StringType, StringType, StringType, StringType)))
+      }
+      case _ => Nil
+    }
+  }
+
+  def generateUnsafeRowBinary(spark : SparkSession , binname: String) : Unit = {
+
+    val unsafeRows = generateRows(spark, binname)
+    val bos = new BufferedOutputStream(new FileOutputStream(binname))
 
 
     for (unsafeRow <- unsafeRows) {
@@ -55,20 +80,9 @@ object SimpleApp {
           println("")
         }
       })
-
-      var j = 0
-      paddings.foreach(b => {
-        print(b.toInt + ",")
-        j += 1
-        if (j % 8 == 0) {
-          println("")
-        }
-      })
-      println("printed " + j + " padding 0 value, " + "total " + (i+j) + " bytes each line")
       println("")
       println("---------------")
       bos.write(bytes)
-      bos.write(paddings)
       bos.flush()
     }
     bos.close()
@@ -78,7 +92,8 @@ object SimpleApp {
   def main(args: Array[String]) {
     val spark = SparkSession.builder.appName("Micro Benchmark of FPGA JSON IP").master("local[1]").getOrCreate()
     //micoBenchmark(spark)
-    generateUnsafeRowBinary
+    generateUnsafeRowBinary(spark, "people.bin")
+    generateUnsafeRowBinary(spark, "Small.bin")
     spark.stop()
   }
 }

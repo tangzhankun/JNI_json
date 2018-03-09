@@ -8,7 +8,7 @@
 
 using namespace std;
 
-#define ROW_BIN_FILE_PATH "/root/customer_support/WASAI/performance/people.bin"
+#define ROW_BIN_FILE_PATH "/root/customer_support/WASAI/performance/Small.bin"
 
 typedef enum json_schema_type
 {
