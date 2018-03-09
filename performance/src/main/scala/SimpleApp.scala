@@ -52,11 +52,11 @@ object SimpleApp {
       }
       case "Small.bin" => {
         val rows = Seq(
-          Row(rightPad("1O0311G80610ydH10G00"), rightPad("B210701"), rightPad("B210701"), rightPad("13886092665")),
-          Row(rightPad("1O0511G80610ydH10G00"), rightPad("B210253"), rightPad("B210253"), rightPad("13986210557")),
-          Row(rightPad("3s0103015G0"), rightPad("B210623"), rightPad("B210623"), rightPad("13638655755")),
-          Row(rightPad("2O05111Zyd3zE"), rightPad("B2186"), rightPad("B2186"), rightPad("13871123393")),
-          Row(rightPad("31011H03iG0"), rightPad("B210378"), rightPad("B210378"), rightPad("13871227723")))
+          Row(rightPad("13886092665"), rightPad("B210701"), rightPad("B210701"), rightPad("1O0311G80610ydH10G00")),
+          Row(rightPad("13886092665"), rightPad("B210701"), rightPad("B210701"), rightPad("1O0311G80610ydH10G00")),
+          Row(rightPad("13886092665"), rightPad("B210701"), rightPad("B210701"), rightPad("1O0311G80610ydH10G00")),
+          Row(rightPad("13886092665"), rightPad("B210701"), rightPad("B210701"), rightPad("1O0311G80610ydH10G00")),
+          Row(rightPad("13886092665"), rightPad("B210701"), rightPad("B210701"), rightPad("1O0311G80610ydH10G00")))
         rows.map(row => toUnsafeRow(row, Array(StringType, StringType, StringType, StringType)))
       }
       case _ => Nil
