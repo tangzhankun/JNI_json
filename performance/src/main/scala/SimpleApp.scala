@@ -27,22 +27,42 @@ object SimpleApp {
     val ret = spark.sql("select count(OPER_TID), count(NBILLING_TID), count(OBILLING_TID), count(ACC_NBR) from gdi_mb")
     ret.show()
   }
+
+
   def generateUnsafeRowBinary() : Unit = {
+    val str = "hello,json"
+    val strLen = str.length
+    val paddings = Array.fill[Byte](128-strLen)(0)
     val rows = Seq(
-      Row(1, 123, 123, "hello,json"),
+      Row(1, 123, 123, str),
       Row(2, 123, 123, "hello,json"),
       Row(3, 123, 123, "hello,json"),
       Row(4, 123, 123, "hello,json"),
       Row(5, 123, 123, "hello,json"))
     val unsafeRows = rows.map(row => toUnsafeRow(row, Array(IntegerType, IntegerType, IntegerType, StringType)))
     val bos = new BufferedOutputStream(new FileOutputStream("./unsafeRow.bin"))
+
+
     for (unsafeRow <- unsafeRows) {
       println("------decoded bytes---------")
       val bytes = unsafeRow.getBytes()
-      bytes.foreach(b => print(b.toInt + ","))
+      bytes.foreach(b => {
+        print(b.toInt + ",")
+      })
+
+      //bos.write(bytes)
+      paddings.foreach(b => {
+        print(b.toInt + ",")
+      })
+
       println("")
       println("---------------")
+      bos.write(bytes)
+      bos.write(paddings)
+      bos.flush()
     }
+    bos.close()
+
   }
 
   def main(args: Array[String]) {
