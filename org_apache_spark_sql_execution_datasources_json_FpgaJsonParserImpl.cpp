@@ -9,7 +9,8 @@ using namespace std;
 
 #define RESULT_SIZE 900*1024*1024
 #define MAX_FIELDS 4
-// device fd of /dev/wasai0
+#define USE_FPGA_FLAG false
+#define FPGA_FD_PATH "/dev/wasai0"
 static int fpga_fd;
 
 jint throwException( JNIEnv *env, char *message ) {
@@ -23,13 +24,26 @@ jint throwException( JNIEnv *env, char *message ) {
 }
 
 
-jbyte* populateUnsafeRows(int count, long& buffer_size){
-  return create_fake_row_without_row_size(count, buffer_size);
+signed char* populateUnsafeRows(int count, long& buffer_size, bool useFPGAFLAG, const char* jsonStr, jint jsonStrSize){
+  if (false == useFPGAFLAG) {
+    return create_fake_row_from_bin_file(0,buffer_size);
+  } else {
+    // dma transfer to FPGA and get row back
+    //unsigned char* unsafeRows = new unsigned char[RESULT_SIZE];
+    unsigned char* unsafeRows = malloc(RESULT_SIZE);
+    memset(unsafeRows, 0, RESULT_SIZE);
+    wasai_dma_transfer_without_file(fpga_fd, jsonStr, jsonStrSize);
+    wasai_read_row(fpga_fd, RESULT_SIZE, &unsafeRows);
+    //buffer_size = wasa_row_total(fpga_fd);
+    return unsafeRows;
+  }
 }
+
+
 
 int init_accelerator(bool use_hardware) {
   if (use_hardware) {
-    fpga_fd = wasai_init("/dev/wasai0");
+    fpga_fd = wasai_init(FPGA_FD_PATH);
     if (fpga_fd == -1) {
       return 0;
     }
@@ -116,7 +130,12 @@ void set_schema(const char* fieldNames, jint strSize, jint* fieldTypes) {
 JNIEXPORT jboolean JNICALL Java_org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl_setSchema
   (JNIEnv *env, jobject obj, jstring schemaFieldNames, jintArray schemaFieldTypes) {
   cerr<<"[JNI]call setSchema - this method try init FPGA devices and set schema"<<endl;
-  if (!init_accelerator(true)) {
+  if (false == USE_FPGA_FLAG) {
+    cerr<<"[JNI]Fake row data generation doesn't needs to set_schema"<<endl;
+    return true;
+  }
+
+  if (!init_accelerator(USE_FPGA_FLAG)) {
     cerr<<"[JNI]Accelerator hadware is not ready!"<<endl;
     throwException(env, "Accelerator cannot be initialized!\n");
   }
@@ -141,7 +160,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_apache_spark_sql_execution_datasources_jso
   // wasai_read_row(fpga_fd, RESULT_SIZE, &buff)
 
   //fake rows
-  jbyte *unsafeRows = populateUnsafeRows(count, buffer_size);
+  jbyte *unsafeRows = populateUnsafeRows(count, buffer_size, USE_FPGA_FLAG, jsonStr, jsonStrSize);
   cerr<<"[JNI]unsafeRow buffer size is "<< buffer_size << endl;
   jbyteArray ret = env->NewByteArray(buffer_size);
   env->SetByteArrayRegion(ret, 0, buffer_size, unsafeRows);
@@ -154,16 +173,7 @@ JNIEXPORT jlongArray JNICALL Java_org_apache_spark_sql_execution_datasources_jso
   jint jsonStrSize = env->GetStringLength(json_str);
   int count = 10;
   long buffer_size = 0;
-  // dma transfer to FPGA and get row back
-  //unsigned char* unsafeRows = new unsigned char[RESULT_SIZE];
-  unsigned char* unsafeRows = malloc(RESULT_SIZE);
-  memset(unsafeRows, 0, RESULT_SIZE);
-  wasai_dma_transfer_without_file(fpga_fd, jsonStr, jsonStrSize);
-  wasai_read_row(fpga_fd, RESULT_SIZE, &unsafeRows);
-  buffer_size = wasa_row_total(fpga_fd);
-  //fake rows
-  // jbyte *unsafeRows = populateUnsafeRows(count, buffer_size);
-
+  signed char *unsafeRows = populateUnsafeRows(count, buffer_size, USE_FPGA_FLAG, jsonStr, jsonStrSize);
   jlongArray ret = env->NewLongArray(2);
   jlong address = (jlong)((void*)(unsafeRows));
   jlong* addr = &address;
@@ -172,8 +182,9 @@ JNIEXPORT jlongArray JNICALL Java_org_apache_spark_sql_execution_datasources_jso
   cerr<<"[JNI]unsafeRow buffer size is "<<std::dec<< *total_size << endl;
   env->SetLongArrayRegion(ret, 0, 1, addr);
   env->SetLongArrayRegion(ret, 1, 1, total_size);
-  
-  wasai_destroy(fpga_fd);
+  if (true == USE_FPGA_FLAG) {
+    wasai_destroy(fpga_fd);
+  }
   return ret;
 }
 
@@ -184,7 +195,7 @@ JNIEXPORT void JNICALL Java_org_apache_spark_sql_execution_datasources_json_Fpga
 
 
 int main() {
-  long size = 0;
-  create_fake_row_without_row_size(1, size);
+  long buffer_size = 0;
+  create_fake_row_from_bin_file(0, buffer_size);
   return 0;
 }

@@ -32,13 +32,14 @@ object SimpleApp {
   def generateUnsafeRowBinary() : Unit = {
     val str = "hello,json"
     val strLen = str.length
-    val paddings = Array.fill[Byte](128-strLen)(0)
+    val paddings = Array.fill[Byte](128-(strLen + 7)/8 * 8)(0)
+    println("padding size is " + paddings.size)
     val rows = Seq(
       Row(1, 123, 123, str),
-      Row(2, 123, 123, "hello,json"),
-      Row(3, 123, 123, "hello,json"),
-      Row(4, 123, 123, "hello,json"),
-      Row(5, 123, 123, "hello,json"))
+      Row(2, 123, 123, str),
+      Row(3, 123, 123, str),
+      Row(4, 123, 123, str),
+      Row(5, 123, 123, str))
     val unsafeRows = rows.map(row => toUnsafeRow(row, Array(IntegerType, IntegerType, IntegerType, StringType)))
     val bos = new BufferedOutputStream(new FileOutputStream("./unsafeRow.bin"))
 
@@ -46,15 +47,24 @@ object SimpleApp {
     for (unsafeRow <- unsafeRows) {
       println("------decoded bytes---------")
       val bytes = unsafeRow.getBytes()
+      var i = 0
       bytes.foreach(b => {
         print(b.toInt + ",")
+        i += 1
+        if (i % 8 == 0) {
+          println("")
+        }
       })
 
-      //bos.write(bytes)
+      var j = 0
       paddings.foreach(b => {
         print(b.toInt + ",")
+        j += 1
+        if (j % 8 == 0) {
+          println("")
+        }
       })
-
+      println("printed " + j + " padding 0 value, " + "total " + (i+j) + " bytes each line")
       println("")
       println("---------------")
       bos.write(bytes)

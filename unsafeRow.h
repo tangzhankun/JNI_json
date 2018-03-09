@@ -5,7 +5,11 @@
 #include <map>
 #include <cstring>
 #include <stdint.h>
+
 using namespace std;
+
+#define ROW_BIN_FILE_PATH "/root/customer_support/WASAI/performance/people.bin"
+
 typedef enum json_schema_type
 {
   BooleanType =  1,
@@ -129,3 +133,35 @@ signed char* create_fake_row_without_row_size(int count, long& buffer_size) {
   buffer_size = row.total_bytes;
   return row.row;
 }
+
+void printChars(signed char* buffer, int size) {
+  int i = 0;
+  for (i = 0; i < size; i++) {
+    if(i%8 == 0) {
+      printf("\n");
+    }
+    printf("%d,", buffer[i]);
+  }
+}
+
+signed char* create_fake_row_from_bin_file(int count, long& buffer_size) {
+  int data_len = 0;
+  signed char *ret_value = NULL;
+  FILE *fptr = fopen(ROW_BIN_FILE_PATH, "rb+");
+  if (fptr==NULL) {
+    printf("Fail to open .bin file !\n");
+    return NULL;
+  }
+  fseek(fptr, 0, SEEK_END);
+  data_len = ftell(fptr);
+  ret_value = new signed char[data_len];
+  memset(ret_value, 0, data_len);
+  fseek(fptr, 0, SEEK_SET);
+  fread(ret_value, sizeof(signed char), data_len, fptr);
+  buffer_size = data_len;
+  //printChars(ret_value, buffer_size);
+  cerr<<"[JNI]fake buffer size from bin file is:"<<buffer_size<<endl;
+  fclose(fptr);
+  return ret_value;
+}
+
