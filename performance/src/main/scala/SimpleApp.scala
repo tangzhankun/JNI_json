@@ -1,10 +1,10 @@
-import java.io.{BufferedOutputStream, ByteArrayOutputStream, FileOutputStream}
+import java.io.{BufferedOutputStream, ByteArrayOutputStream, FileOutputStream, PrintWriter}
 
 import org.apache.spark.sql.catalyst.{CatalystTypeConverters, InternalRow}
 import org.apache.spark.sql.catalyst.expressions.{UnsafeProjection, UnsafeRow}
 import org.apache.spark.sql.execution.UnsafeRowSerializer
 import org.apache.spark.sql.{Row, SparkSession}
-import org.apache.spark.sql.types.{DataType, IntegerType, StringType}
+import org.apache.spark.sql.types.{DataType, IntegerType, StringType, StructType}
 
 object SimpleApp {
   private def toUnsafeRow(row: Row, schema: Array[DataType]): UnsafeRow = {
@@ -21,11 +21,15 @@ object SimpleApp {
   def micoBenchmark(spark : SparkSession): Unit = {
     val jsonFile = "./Small.json" // Should be some file on your system
 
+    val start_time = System.currentTimeMillis()
     val smallDF = spark.read.format("json").load(jsonFile)
-    smallDF.show()
+
+    smallDF.toJSON.collect().foreach(println)
     smallDF.createOrReplaceTempView("gdi_mb")
     val ret = spark.sql("select count(OPER_TID), count(NBILLING_TID), count(OBILLING_TID), count(ACC_NBR) from gdi_mb")
-    ret.show()
+    ret.collect().foreach(println)
+    val end_time = System.currentTimeMillis()
+    println("Micro-benchmark costs: " + (end_time - start_time) + " ms")
   }
 
 
@@ -89,11 +93,61 @@ object SimpleApp {
 
   }
 
+  def randomStringFromCharList(length: Int, chars: Seq[Char]): String = {
+    val sb = new StringBuilder
+    for (i <- 1 to length) {
+      val randomNum = util.Random.nextInt(chars.length)
+      sb.append(chars(randomNum))
+    }
+    sb.toString
+  }
+
+  def randomAlphaNumericString(length: Int): String = {
+    val chars = ('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9')
+    randomStringFromCharList(length, chars)
+  }
+
+  def dataGen(spark: SparkSession, row_count: Int, path: String) : Unit = {
+    val templateJsonFile = "./Small.json" // Should be some file on your system
+    val smallDF = spark.read.format("json").load(templateJsonFile)
+    val schema = smallDF.schema
+    val pw = new PrintWriter(path)
+
+    var someData = List[Row]()
+    for(i <- 1 to row_count) {
+      someData = someData :+ Row(randomAlphaNumericString(128), randomAlphaNumericString(128),
+        randomAlphaNumericString(128), randomAlphaNumericString(128))
+    }
+    val myDF = spark.createDataFrame(
+      spark.sparkContext.parallelize(someData),
+      schema
+    )
+    myDF.toJSON.collect().foreach((s:String) => {
+      pw.write(s)
+      pw.write("\n")
+    })
+    pw.close()
+    val randomDF = spark.read.json(path)
+    randomDF.toJSON.collect().foreach(println)
+  }
+
   def main(args: Array[String]) {
     val spark = SparkSession.builder.appName("Micro Benchmark of FPGA JSON IP").master("local[1]").getOrCreate()
-    //micoBenchmark(spark)
-    generateUnsafeRowBinary(spark, "people.bin")
-    generateUnsafeRowBinary(spark, "Small.bin")
+    args(0) match {
+      case "datagen" => {
+        val row_count = args(1).toInt
+        val pathName = args(2)
+        dataGen(spark, row_count, pathName)
+      }
+      case "bingen" => {
+        generateUnsafeRowBinary(spark, "people.bin")
+        generateUnsafeRowBinary(spark, "Small.bin")
+      }
+      case "micro" => {
+        micoBenchmark(spark)
+      }
+    }
+
     spark.stop()
   }
 }
