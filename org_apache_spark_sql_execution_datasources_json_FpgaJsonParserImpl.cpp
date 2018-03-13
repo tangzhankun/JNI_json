@@ -7,7 +7,7 @@
 
 using namespace std;
 
-#define RESULT_SIZE 900*1024*1024
+#define RESULT_SIZE 1024*1024*1024
 #define MAX_FIELDS 4
 #define USE_FPGA_FLAG true
 #define FPGA_FD_PATH "/dev/wasai0"
@@ -183,7 +183,7 @@ JNIEXPORT jlongArray JNICALL Java_org_apache_spark_sql_execution_datasources_jso
   env->SetLongArrayRegion(ret, 0, 1, addr);
   env->SetLongArrayRegion(ret, 1, 1, total_size);
   if (true == USE_FPGA_FLAG) {
-    wasai_destroy(fpga_fd);
+    //wasai_destroy(fpga_fd);
   }
   return ret;
 }

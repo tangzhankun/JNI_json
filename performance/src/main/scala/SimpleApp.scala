@@ -21,9 +21,9 @@ object SimpleApp {
   def micoBenchmark(spark : SparkSession, filepath : String, useFPGA : Boolean): Unit = {
     val jsonFile = filepath // Should be some file on your system
 
-    val start_time = System.currentTimeMillis()
     val smallDF = spark.read.format("json").load(jsonFile)
     smallDF.createOrReplaceTempView("gdi_mb")
+    val start_time = System.currentTimeMillis()
     val sqlStr = "select count(OPER_TID), count(NBILLING_TID), count(OBILLING_TID), count(ACC_NBR) from gdi_mb"
     val ret = spark.sql(sqlStr)
     ret.show
@@ -33,9 +33,9 @@ object SimpleApp {
     println("CPU Micro-benchmark costs: " + (end_time - start_time) + " ms")
 
     if (useFPGA) {
-      val start_time = System.currentTimeMillis()
       val smallDF = spark.read.format("json_FPGA").load(jsonFile)
       smallDF.createOrReplaceTempView("gdi_mb")
+      val start_time = System.currentTimeMillis()
       val sqlStr = "select count(OPER_TID), count(NBILLING_TID), count(OBILLING_TID), count(ACC_NBR) from gdi_mb"
       val ret = spark.sql(sqlStr)
       ret.show
