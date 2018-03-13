@@ -99,7 +99,7 @@ void set_schema(const char* fieldNames, jint strSize, jint* fieldTypes) {
  //split fieldNames str with ","
  // only support 4 field
   int typeBits = getFieldTypeBits(MAX_FIELDS, fieldTypes);
-  cerr<<"[JNI]typeBits is: 0b"<<std::bitset<MAX_FIELDS>(typeBits)<<endl;
+  //cerr<<"[JNI]typeBits is: 0b"<<std::bitset<MAX_FIELDS>(typeBits)<<endl;
 
   wasai_setschema(fpga_fd, typeBits);
   int field_index = 0;
@@ -129,18 +129,18 @@ void set_schema(const char* fieldNames, jint strSize, jint* fieldTypes) {
 
 JNIEXPORT jboolean JNICALL Java_org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl_setSchema
   (JNIEnv *env, jobject obj, jstring schemaFieldNames, jintArray schemaFieldTypes) {
-  cerr<<"[JNI]call setSchema - this method try init FPGA devices and set schema"<<endl;
+  //cerr<<"[JNI]call setSchema - this method try init FPGA devices and set schema"<<endl;
   if (false == USE_FPGA_FLAG) {
-    cerr<<"[JNI]Fake row data generation doesn't needs to set_schema"<<endl;
+    //cerr<<"[JNI]Fake row data generation doesn't needs to set_schema"<<endl;
     return true;
   }
 
   if (!init_accelerator(USE_FPGA_FLAG)) {
-    cerr<<"[JNI]Accelerator hadware is not ready!"<<endl;
+    //cerr<<"[JNI]Accelerator hadware is not ready!"<<endl;
     throwException(env, "Accelerator cannot be initialized!\n");
   }
   const char* fieldNames = env->GetStringUTFChars(schemaFieldNames, 0);
-  cerr<<"Got fieldNames from scala: "<<fieldNames<<endl;
+  //cerr<<"Got fieldNames from scala: "<<fieldNames<<endl;
   jint fieldNamesStrsize = env->GetStringLength(schemaFieldNames);
   jint* fieldTypes = env->GetIntArrayElements(schemaFieldTypes, 0); 
   set_schema(fieldNames, fieldNamesStrsize, fieldTypes);
@@ -149,7 +149,7 @@ JNIEXPORT jboolean JNICALL Java_org_apache_spark_sql_execution_datasources_json_
 
 JNIEXPORT jbyteArray JNICALL Java_org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl_parseJson
   (JNIEnv *env, jobject obj, jstring json_str) {
-  cerr<<"[JNI]call parseJson - this method return byteArray"<<endl;
+  //cerr<<"[JNI]call parseJson - this method return byteArray"<<endl;
   const char* jsonStr = env->GetStringUTFChars(json_str, 0);
   jint jsonStrSize = env->GetStringLength(json_str);
   int count = 10;
@@ -161,14 +161,14 @@ JNIEXPORT jbyteArray JNICALL Java_org_apache_spark_sql_execution_datasources_jso
 
   //fake rows
   jbyte *unsafeRows = populateUnsafeRows(count, buffer_size, USE_FPGA_FLAG, jsonStr, jsonStrSize);
-  cerr<<"[JNI]unsafeRow buffer size is "<< buffer_size << endl;
+  //cerr<<"[JNI]unsafeRow buffer size is "<< buffer_size << endl;
   jbyteArray ret = env->NewByteArray(buffer_size);
   env->SetByteArrayRegion(ret, 0, buffer_size, unsafeRows);
   return ret; 
 }
 JNIEXPORT jlongArray JNICALL Java_org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl_parseJson2
   (JNIEnv *env, jobject obj, jstring json_str) {
-  cerr<<"[JNI]call parseJson2 - this method return long pointer address and size"<<endl;
+  //cerr<<"[JNI]call parseJson2 - this method return long pointer address and size"<<endl;
   const char* jsonStr = env->GetStringUTFChars(json_str, 0);
   jint jsonStrSize = env->GetStringLength(json_str);
   int count = 10;
@@ -178,8 +178,8 @@ JNIEXPORT jlongArray JNICALL Java_org_apache_spark_sql_execution_datasources_jso
   jlong address = (jlong)((void*)(unsafeRows));
   jlong* addr = &address;
   jlong* total_size = &buffer_size;
-  cerr<<"[JNI]the buffer addr is "<<std::dec<<address<<endl;
-  cerr<<"[JNI]unsafeRow buffer size is "<<std::dec<< *total_size << endl;
+  //cerr<<"[JNI]the buffer addr is "<<std::dec<<address<<endl;
+  //cerr<<"[JNI]unsafeRow buffer size is "<<std::dec<< *total_size << endl;
   env->SetLongArrayRegion(ret, 0, 1, addr);
   env->SetLongArrayRegion(ret, 1, 1, total_size);
   if (true == USE_FPGA_FLAG) {
@@ -190,7 +190,7 @@ JNIEXPORT jlongArray JNICALL Java_org_apache_spark_sql_execution_datasources_jso
 
 JNIEXPORT void JNICALL Java_org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl_close
   (JNIEnv *, jobject) {
-  cerr<<"[JNI]call close - this method should do some clean up"<<endl;
+  //cerr<<"[JNI]call close - this method should do some clean up"<<endl;
 }
 
 

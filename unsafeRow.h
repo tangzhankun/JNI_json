@@ -115,7 +115,7 @@ signed char* create_fake_row_without_row_size(int count, long& buffer_size) {
   std::string value[] = {"hello,a simple json string", "hello, this is a simple text", "This is a string", "This is a text"};
   int current_row_pos = 0;
   row.total_bytes = 0;
-  cerr<<"[JNI]current row size is:"<<std::dec<<row.total_bytes<<endl;
+  //cerr<<"[JNI]current row size is:"<<std::dec<<row.total_bytes<<endl;
   for(int i = 1; i<=count; i++){
     int id = i;
     int index = 0;
@@ -127,7 +127,7 @@ signed char* create_fake_row_without_row_size(int count, long& buffer_size) {
     *(uint32_t*)(row.row + current_row_pos + row.nullbits_bytes + 8 * index + 4) = (8 * schema.size() + 8);
     memcpy(row.row + current_row_pos + 8 * schema.size() + 8, value[i%4].c_str(), value[i%4].length());
     row.total_bytes += (8*schema.size() + 8 + 128);
-    cerr<<"[JNI]current row_size is:"<<row.total_bytes<<endl;
+    //cerr<<"[JNI]current row_size is:"<<row.total_bytes<<endl;
     current_row_pos += (8*schema.size() + 8 + 128);
   }
   buffer_size = row.total_bytes;
@@ -160,7 +160,7 @@ signed char* create_fake_row_from_bin_file(int count, long& buffer_size) {
   fread(ret_value, sizeof(signed char), data_len, fptr);
   buffer_size = data_len;
   //printChars(ret_value, buffer_size);
-  cerr<<"[JNI]fake buffer size from bin file is:"<<buffer_size<<endl;
+  //cerr<<"[JNI]fake buffer size from bin file is:"<<buffer_size<<endl;
   fclose(fptr);
   return ret_value;
 }
