@@ -9,7 +9,7 @@ using namespace std;
 
 #define RESULT_SIZE 900*1024*1024
 #define MAX_FIELDS 4
-#define USE_FPGA_FLAG false
+#define USE_FPGA_FLAG true
 #define FPGA_FD_PATH "/dev/wasai0"
 static int fpga_fd;
 
@@ -34,7 +34,7 @@ signed char* populateUnsafeRows(int count, long& buffer_size, bool useFPGAFLAG, 
     memset(unsafeRows, 0, RESULT_SIZE);
     wasai_dma_transfer_without_file(fpga_fd, jsonStr, jsonStrSize);
     wasai_read_row(fpga_fd, RESULT_SIZE, &unsafeRows);
-    //buffer_size = wasa_row_total(fpga_fd);
+    buffer_size = wasa_row_total(fpga_fd);
     return unsafeRows;
   }
 }
