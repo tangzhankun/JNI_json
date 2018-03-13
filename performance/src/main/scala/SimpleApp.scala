@@ -23,8 +23,6 @@ object SimpleApp {
 
     val start_time = System.currentTimeMillis()
     val smallDF = spark.read.format("json").load(jsonFile)
-
-    smallDF.toJSON.collect().foreach(println)
     smallDF.createOrReplaceTempView("gdi_mb")
     val sqlStr = "select count(OPER_TID), count(NBILLING_TID), count(OBILLING_TID), count(ACC_NBR) from gdi_mb"
     val ret = spark.sql(sqlStr)
@@ -37,8 +35,6 @@ object SimpleApp {
     if (useFPGA) {
       val start_time = System.currentTimeMillis()
       val smallDF = spark.read.format("json_FPGA").load(jsonFile)
-
-      smallDF.toJSON.collect().foreach(println)
       smallDF.createOrReplaceTempView("gdi_mb")
       val sqlStr = "select count(OPER_TID), count(NBILLING_TID), count(OBILLING_TID), count(ACC_NBR) from gdi_mb"
       val ret = spark.sql(sqlStr)
