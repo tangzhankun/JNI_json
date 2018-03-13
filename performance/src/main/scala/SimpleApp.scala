@@ -121,7 +121,7 @@ object SimpleApp {
     randomStringFromCharList(length, chars)
   }
 
-  def dataGen(spark: SparkSession, row_count: Int, path: String) : Unit = {
+  def dataGen(spark: SparkSession, row_count: Int, path: String, valueSize: Int) : Unit = {
     val templateJsonFile = "./Small.json" // Should be some file on your system
     val smallDF = spark.read.format("json").load(templateJsonFile)
     val schema = smallDF.schema
@@ -129,8 +129,8 @@ object SimpleApp {
 
     var someData = List[Row]()
     for(i <- 1 to row_count) {
-      someData = someData :+ Row(randomAlphaNumericString(128), randomAlphaNumericString(128),
-        randomAlphaNumericString(128), randomAlphaNumericString(128))
+      someData = someData :+ Row(randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
+        randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize))
     }
     val myDF = spark.createDataFrame(
       spark.sparkContext.parallelize(someData),
@@ -151,7 +151,8 @@ object SimpleApp {
       case "datagen" => {
         val row_count = args(1).toInt
         val pathName = args(2)
-        dataGen(spark, row_count, pathName)
+        val valueSize = args(3).toInt
+        dataGen(spark, row_count, pathName, valueSize)
       }
       case "bingen" => {
         generateUnsafeRowBinary(spark, "people.bin")
