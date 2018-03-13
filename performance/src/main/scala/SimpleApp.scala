@@ -127,8 +127,29 @@ object SimpleApp {
     val schema = smallDF.schema
     val pw = new PrintWriter(path)
 
+    val one_group_row = 10000
+    val group_count = row_count/one_group_row
+    val remaining_row = row_count % one_group_row
+    if(group_count > 1) {
+      for (j <- 1 to group_count) {
+        var someData = List[Row]()
+        for (i <- 1 to one_group_row) {
+          someData = someData :+ Row(randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
+            randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize))
+        }
+        val myDF = spark.createDataFrame(
+          spark.sparkContext.parallelize(someData),
+          schema
+        )
+        myDF.toJSON.collect().foreach((s: String) => {
+          pw.write(s)
+          pw.write("\n")
+        })
+      }
+    }
+    // remaining rows
     var someData = List[Row]()
-    for(i <- 1 to row_count) {
+    for (i <- 1 to remaining_row) {
       someData = someData :+ Row(randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
         randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize))
     }
@@ -136,13 +157,14 @@ object SimpleApp {
       spark.sparkContext.parallelize(someData),
       schema
     )
-    myDF.toJSON.collect().foreach((s:String) => {
+    myDF.toJSON.collect().foreach((s: String) => {
       pw.write(s)
       pw.write("\n")
     })
+
     pw.close()
-    val randomDF = spark.read.json(path)
-    randomDF.toJSON.collect().foreach(println)
+    //val randomDF = spark.read.json(path)
+    //randomDF.toJSON.collect().foreach(println)
   }
 
   def main(args: Array[String]) {
