@@ -18,18 +18,36 @@ object SimpleApp {
     }
   }
 
-  def micoBenchmark(spark : SparkSession): Unit = {
-    val jsonFile = "./Small.json" // Should be some file on your system
+  def micoBenchmark(spark : SparkSession, filepath : String, useFPGA : Boolean): Unit = {
+    val jsonFile = filepath // Should be some file on your system
 
     val start_time = System.currentTimeMillis()
     val smallDF = spark.read.format("json").load(jsonFile)
 
     smallDF.toJSON.collect().foreach(println)
     smallDF.createOrReplaceTempView("gdi_mb")
-    val ret = spark.sql("select count(OPER_TID), count(NBILLING_TID), count(OBILLING_TID), count(ACC_NBR) from gdi_mb")
-    ret.collect().foreach(println)
+    val sqlStr = "select count(OPER_TID), count(NBILLING_TID), count(OBILLING_TID), count(ACC_NBR) from gdi_mb"
+    val ret = spark.sql(sqlStr)
+    ret.show
     val end_time = System.currentTimeMillis()
-    println("Micro-benchmark costs: " + (end_time - start_time) + " ms")
+
+    println("SQL sentence: " + sqlStr)
+    println("CPU Micro-benchmark costs: " + (end_time - start_time) + " ms")
+
+    if (useFPGA) {
+      val start_time = System.currentTimeMillis()
+      val smallDF = spark.read.format("json_FPGA").load(jsonFile)
+
+      smallDF.toJSON.collect().foreach(println)
+      smallDF.createOrReplaceTempView("gdi_mb")
+      val sqlStr = "select count(OPER_TID), count(NBILLING_TID), count(OBILLING_TID), count(ACC_NBR) from gdi_mb"
+      val ret = spark.sql(sqlStr)
+      ret.show
+      val end_time = System.currentTimeMillis()
+
+      println("FPGA Micro-benchmark costs: " + (end_time - start_time) + " ms")
+    }
+
   }
 
 
@@ -144,7 +162,9 @@ object SimpleApp {
         generateUnsafeRowBinary(spark, "Small.bin")
       }
       case "micro" => {
-        micoBenchmark(spark)
+        val filePath = args(1)
+        val useFPGA = args(2).toBoolean
+        micoBenchmark(spark, filePath, useFPGA)
       }
     }
 
