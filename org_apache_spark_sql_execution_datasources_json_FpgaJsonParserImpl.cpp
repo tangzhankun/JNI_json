@@ -4,7 +4,7 @@
 #include <bitset>
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <sys/time.h>
 using namespace std;
 
 #define RESULT_SIZE 1024*1024*1024
@@ -12,6 +12,12 @@ using namespace std;
 #define USE_FPGA_FLAG true
 #define FPGA_FD_PATH "/dev/wasai0"
 static int fpga_fd;
+
+long currentTime() {
+  struct timeval tp;
+  gettimeofday(&tp, NULL);
+  return tp.tv_sec * 1000 + tp.tv_usec / 1000;
+}
 
 jint throwException( JNIEnv *env, char *message ) {
     jclass exClass;
@@ -173,13 +179,16 @@ JNIEXPORT jlongArray JNICALL Java_org_apache_spark_sql_execution_datasources_jso
   jint jsonStrSize = env->GetStringLength(json_str);
   int count = 10;
   long buffer_size = 0;
+  long start_time = currentTime();
   signed char *unsafeRows = populateUnsafeRows(count, buffer_size, USE_FPGA_FLAG, jsonStr, jsonStrSize);
+  long end_time = currentTime();
+  cerr<<"[JNI]It spends "<<(end_time - start_time)<<" ms to convert "<<jsonStrSize<<" bytes json strings"<<endl;
   jlongArray ret = env->NewLongArray(2);
   jlong address = (jlong)((void*)(unsafeRows));
   jlong* addr = &address;
   jlong* total_size = &buffer_size;
-  //cerr<<"[JNI]the buffer addr is "<<std::dec<<address<<endl;
-  //cerr<<"[JNI]unsafeRow buffer size is "<<std::dec<< *total_size << endl;
+  cerr<<"[JNI]the buffer addr is "<<std::dec<<address<<endl;
+  cerr<<"[JNI]unsafeRow buffer size is "<<std::dec<< *total_size << endl;
   env->SetLongArrayRegion(ret, 0, 1, addr);
   env->SetLongArrayRegion(ret, 1, 1, total_size);
   if (true == USE_FPGA_FLAG) {
