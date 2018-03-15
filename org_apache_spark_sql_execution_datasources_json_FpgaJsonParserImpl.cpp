@@ -45,6 +45,30 @@ signed char* populateUnsafeRows(int count, long& buffer_size, bool useFPGAFLAG, 
   }
 }
 
+signed char* populateUnsafeRowFromFile(long& buffer_size, bool useFPGAFLAG, const char* filePathStr, jint filePathStrSize){
+  if (false == useFPGAFLAG) {
+    return create_fake_row_from_bin_file(0,buffer_size);
+  } else {
+    // dma transfer to FPGA and get row back
+    //unsigned char* unsafeRows = new unsigned char[RESULT_SIZE];
+
+    FILE *fptr = NULL;
+    fptr=fopen(filePathStr, "rb+");
+    if (fptr==NULL) {
+        cerr<<"Fail to open .json file !"<<endl;
+        return NULL;
+    }
+    fseek(fptr, 0, SEEK_END);
+    int data_len = ftell(fptr);
+
+    unsigned char* unsafeRows = malloc(RESULT_SIZE);
+    memset(unsafeRows, 0, RESULT_SIZE);
+    wasai_dma_transfer(fpga_fd, fptr, data_len);
+    wasai_read_row(fpga_fd, RESULT_SIZE, &unsafeRows);
+    buffer_size = wasa_row_total(fpga_fd);
+    return unsafeRows;
+  }
+}
 
 
 int init_accelerator(bool use_hardware) {
@@ -196,6 +220,32 @@ JNIEXPORT jlongArray JNICALL Java_org_apache_spark_sql_execution_datasources_jso
   }
   return ret;
 }
+
+JNIEXPORT jlongArray JNICALL Java_org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl_parseJson3
+  (JNIEnv *env, jobject obj, jstring filepath_str) {
+  //cerr<<"[JNI]call parseJson2 - this method return long pointer address and size"<<endl;
+  const char* filePath = env->GetStringUTFChars(filepath_str, 0);
+  jint filePathSize = env->GetStringLength(filepath_str);
+  int count = 10;
+  long buffer_size = 0;
+  long start_time = currentTime();
+  signed char *unsafeRows = populateUnsafeRowFromFile(buffer_size, USE_FPGA_FLAG, filePath, filePathSize);
+  long end_time = currentTime();
+  cerr<<"[JNI]It spends "<<(end_time - start_time)<<" ms to convert "<<filePath<<"'s json strings"<<endl;
+  jlongArray ret = env->NewLongArray(2);
+  jlong address = (jlong)((void*)(unsafeRows));
+  jlong* addr = &address;
+  jlong* total_size = &buffer_size;
+  cerr<<"[JNI]the buffer addr is "<<std::dec<<address<<endl;
+  cerr<<"[JNI]unsafeRow buffer size is "<<std::dec<< *total_size << endl;
+  env->SetLongArrayRegion(ret, 0, 1, addr);
+  env->SetLongArrayRegion(ret, 1, 1, total_size);
+  if (true == USE_FPGA_FLAG) {
+    //wasai_destroy(fpga_fd);
+  }
+  return ret;
+}
+
 
 JNIEXPORT void JNICALL Java_org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl_close
   (JNIEnv *, jobject) {

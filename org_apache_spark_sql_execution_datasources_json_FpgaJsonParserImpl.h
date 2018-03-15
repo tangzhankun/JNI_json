@@ -33,6 +33,14 @@ JNIEXPORT jlongArray JNICALL Java_org_apache_spark_sql_execution_datasources_jso
 
 /*
  * Class:     org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl
+ * Method:    parseJson3
+ * Signature: (Ljava/lang/String;)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl_parseJson3
+  (JNIEnv *, jobject, jstring);
+
+/*
+ * Class:     org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl
  * Method:    close
  * Signature: ()V
  */
