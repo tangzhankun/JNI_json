@@ -2,9 +2,10 @@ import java.io.{BufferedOutputStream, ByteArrayOutputStream, FileOutputStream, P
 
 import org.apache.spark.sql.catalyst.{CatalystTypeConverters, InternalRow}
 import org.apache.spark.sql.catalyst.expressions.{UnsafeProjection, UnsafeRow}
+import org.apache.spark.sql.catalyst.json.{JSONOptions, JacksonParser}
 import org.apache.spark.sql.execution.UnsafeRowSerializer
 import org.apache.spark.sql.{Row, SparkSession}
-import org.apache.spark.sql.types.{DataType, IntegerType, StringType, StructType}
+import org.apache.spark.sql.types._
 
 object SimpleApp {
   private def toUnsafeRow(row: Row, schema: Array[DataType]): UnsafeRow = {
@@ -20,8 +21,13 @@ object SimpleApp {
 
   def micoBenchmark(spark : SparkSession, filepath : String, useFPGA : Boolean): Unit = {
     val jsonFile = filepath // Should be some file on your system
-
-    val smallDF = spark.read.format("json").load(jsonFile)
+    val theSchema = StructType(
+      StructField("ACC_NBR", StringType, true) ::
+      StructField("OBILLING_TID", StringType, true) ::
+      StructField("NBILLING_TID", StringType, true) ::
+      StructField("OPER_TID", StringType, true) :: Nil
+    )
+    val smallDF = spark.read.schema(theSchema).format("json").load(jsonFile)
     smallDF.createOrReplaceTempView("gdi_mb")
     val start_time = System.currentTimeMillis()
     val sqlStr = "select count(OPER_TID), count(NBILLING_TID), count(OBILLING_TID), count(ACC_NBR) from gdi_mb"
@@ -165,6 +171,19 @@ object SimpleApp {
     pw.close()
     //val randomDF = spark.read.json(path)
     //randomDF.toJSON.collect().foreach(println)
+  }
+
+  def CPUJSONPerformance(sparkSession: SparkSession): Unit = {
+//    val actulSchema = StructType()
+//    val extraOptions = new scala.collection.mutable.HashMap[String, String]
+//    val parsedOptions = new JSONOptions(
+//      extraOptions.toMap,
+//      sparkSession.sessionState.conf.sessionLocalTimeZone,
+//      sparkSession.sessionState.conf.columnNameOfCorruptRecord)
+//    val rawParser = new JacksonParser(actualSchema, parsedOptions)
+//    stringArray.foreach() {
+//        rawParser.parse()
+//      }
   }
 
   def main(args: Array[String]) {
