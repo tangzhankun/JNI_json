@@ -39,7 +39,7 @@ object SimpleApp {
     println("CPU Micro-benchmark costs: " + (end_time - start_time) + " ms")
 
     if (useFPGA) {
-      val smallDF = spark.read.format("json_FPGA").load(jsonFile)
+      val smallDF = spark.read.schema(theSchema).format("json_FPGA").load(jsonFile)
       smallDF.createOrReplaceTempView("gdi_mb")
       val start_time = System.currentTimeMillis()
       val sqlStr = "select count(OPER_TID), count(NBILLING_TID), count(OBILLING_TID), count(ACC_NBR) from gdi_mb"
