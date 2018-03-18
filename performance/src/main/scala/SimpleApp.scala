@@ -128,7 +128,7 @@ object SimpleApp {
   }
 
   def dataGen(spark: SparkSession, row_count: Int, path: String, valueSize: Int) : Unit = {
-    val templateJsonFile = "./Small.json" // Should be some file on your system
+    val templateJsonFile = "./more-column.json" // Should be some file on your system
     val smallDF = spark.read.format("json").load(templateJsonFile)
     val schema = smallDF.schema
     val pw = new PrintWriter(path)
@@ -141,7 +141,10 @@ object SimpleApp {
         var someData = List[Row]()
         for (i <- 1 to one_group_row) {
           someData = someData :+ Row(randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
-            randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize))
+            randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
+            randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
+            randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize)
+           )
         }
         val myDF = spark.createDataFrame(
           spark.sparkContext.parallelize(someData),
@@ -157,7 +160,10 @@ object SimpleApp {
     var someData = List[Row]()
     for (i <- 1 to remaining_row) {
       someData = someData :+ Row(randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
-        randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize))
+        randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
+        randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
+        randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize)
+        )
     }
     val myDF = spark.createDataFrame(
       spark.sparkContext.parallelize(someData),
