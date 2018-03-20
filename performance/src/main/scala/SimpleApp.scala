@@ -127,7 +127,7 @@ object SimpleApp {
   }
 
   def randomAlphaNumericString(length: Int): String = {
-    val chars = ('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9')
+    val chars = ('0' to '9')
     randomStringFromCharList(length, chars)
   }
 
@@ -225,6 +225,7 @@ object SimpleApp {
         StructField("OPER_TID", StringType, true) :: Nil
     )
     val smallDF = spark.read.schema(theSchema).format("json").load(jsonFile)
+    smallDF.show()
     val start_time = System.currentTimeMillis()
     smallDF.agg("ACC_NBR" -> "max", "OPER_TID" -> "avg").show()
     val end_time = System.currentTimeMillis()
