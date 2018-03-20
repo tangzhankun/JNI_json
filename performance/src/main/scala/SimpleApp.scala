@@ -136,7 +136,7 @@ object SimpleApp {
     val one_group_row = 10000
     val group_count = row_count/one_group_row
     val remaining_row = row_count % one_group_row
-    if(group_count > 1) {
+    if(group_count >= 1) {
       for (j <- 1 to group_count) {
         var someData = List[Row]()
         for (i <- 1 to one_group_row) {
