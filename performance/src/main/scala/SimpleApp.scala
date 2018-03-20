@@ -216,6 +216,23 @@ object SimpleApp {
 //      }
   }
 
+  def endToEndBenchmark(spark: SparkSession, filepath : String, useFPGA : Boolean): Unit = {
+    val jsonFile = filepath // Should be some file on your system
+    val theSchema = StructType(
+      StructField("ACC_NBR", StringType, true) ::
+        StructField("OBILLING_TID", StringType, true) ::
+        StructField("NBILLING_TID", StringType, true) ::
+        StructField("OPER_TID", StringType, true) :: Nil
+    )
+    val smallDF = spark.read.schema(theSchema).format("json").load(jsonFile)
+    val start_time = System.currentTimeMillis()
+    smallDF.agg("ACC_NBR" -> "max", "OPER_TID" -> "avg").show()
+    val end_time = System.currentTimeMillis()
+
+    println("CPU End-To-End-Benchmark costs: " + (end_time - start_time) + " ms")
+
+  }
+
   def main(args: Array[String]) {
     val spark = SparkSession.builder.appName("Micro Benchmark of FPGA JSON IP").master("local[1]").getOrCreate()
     args(0) match {
@@ -233,6 +250,11 @@ object SimpleApp {
         val filePath = args(1)
         val useFPGA = args(2).toBoolean
         micoBenchmark(spark, filePath, useFPGA)
+      }
+      case "end-to-end" => {
+        val filePath = args(1)
+        val useFPGA = args(2).toBoolean
+        endToEndBenchmark(spark, filePath, useFPGA)
       }
     }
 
