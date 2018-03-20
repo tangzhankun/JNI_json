@@ -122,15 +122,20 @@ object SimpleApp {
     sb.toString
   }
 
+  def randomInt(length: Int): Long = {
+    return util.Random.nextInt(length).toLong
+  }
+
   def randomAlphaNumericString(length: Int): String = {
     val chars = ('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9')
     randomStringFromCharList(length, chars)
   }
 
   def dataGen(spark: SparkSession, row_count: Int, path: String, valueSize: Int) : Unit = {
-    val templateJsonFile = "./more-column.json" // Should be some file on your system
+    val templateJsonFile = "./BigReal.json" // Should be some file on your system
     val smallDF = spark.read.format("json").load(templateJsonFile)
     val schema = smallDF.schema
+    println("The schema is " + schema.toString)
     val pw = new PrintWriter(path)
 
     val one_group_row = 10000
@@ -140,10 +145,19 @@ object SimpleApp {
       for (j <- 1 to group_count) {
         var someData = List[Row]()
         for (i <- 1 to one_group_row) {
-          someData = someData :+ Row(randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
+          someData = someData :+ Row(randomInt(valueSize), randomAlphaNumericString(valueSize),
+            randomAlphaNumericString(valueSize), randomInt(valueSize), randomInt(valueSize),
+            randomAlphaNumericString(valueSize), randomInt(valueSize), randomInt(valueSize),
+            randomInt(valueSize), randomInt(valueSize), randomInt(valueSize),
+            randomInt(valueSize), randomInt(valueSize), randomInt(valueSize),
+            randomInt(valueSize), randomInt(valueSize), randomInt(valueSize),
+            randomInt(valueSize), randomInt(valueSize), randomInt(valueSize),
+            randomInt(valueSize), randomInt(valueSize), randomAlphaNumericString(valueSize),
             randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
-            randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
-            randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize)
+            randomInt(valueSize), randomAlphaNumericString(valueSize), randomInt(valueSize),
+            randomInt(valueSize), randomInt(valueSize), randomInt(valueSize),
+            randomInt(valueSize), randomInt(valueSize), randomInt(valueSize),
+            randomInt(valueSize), randomInt(valueSize)
            )
         }
         val myDF = spark.createDataFrame(
@@ -159,11 +173,21 @@ object SimpleApp {
     // remaining rows
     var someData = List[Row]()
     for (i <- 1 to remaining_row) {
-      someData = someData :+ Row(randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
-        randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
-        randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
-        randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize)
-        )
+          someData = someData :+ Row(randomInt(valueSize), randomAlphaNumericString(valueSize),
+            randomAlphaNumericString(valueSize), randomInt(valueSize), randomInt(valueSize),
+            randomAlphaNumericString(valueSize), randomInt(valueSize), randomInt(valueSize),
+            randomInt(valueSize), randomInt(valueSize), randomInt(valueSize),
+            randomInt(valueSize), randomInt(valueSize), randomInt(valueSize),
+            randomInt(valueSize), randomInt(valueSize), randomInt(valueSize),
+            randomInt(valueSize), randomInt(valueSize), randomInt(valueSize),
+            randomInt(valueSize), randomInt(valueSize), randomAlphaNumericString(valueSize),
+            randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
+            randomInt(valueSize), randomAlphaNumericString(valueSize), randomInt(valueSize),
+            randomInt(valueSize), randomInt(valueSize), randomInt(valueSize),
+            randomInt(valueSize), randomInt(valueSize), randomInt(valueSize),
+            randomInt(valueSize), randomInt(valueSize)
+           )
+
     }
     val myDF = spark.createDataFrame(
       spark.sparkContext.parallelize(someData),
