@@ -225,13 +225,19 @@ object SimpleApp {
         StructField("OPER_TID", StringType, true) :: Nil
     )
     val smallDF = spark.read.schema(theSchema).format("json").load(jsonFile)
-    smallDF.show()
     val start_time = System.currentTimeMillis()
     smallDF.agg("NBILLING_TID" -> "min", "ACC_NBR" -> "max", "OPER_TID" -> "avg").show()
     val end_time = System.currentTimeMillis()
 
     println("CPU End-To-End-Benchmark costs: " + (end_time - start_time) + " ms")
 
+    if (useFPGA) {
+      val aDF = spark.read.schema(theSchema).format("json_FPGA").load(jsonFile)
+      val start_time = System.currentTimeMillis()
+      aDF.agg("NBILLING_TID" -> "min", "ACC_NBR" -> "max", "OPER_TID" -> "avg").show()
+      val end_time = System.currentTimeMillis()
+      println("FPGA End-To-End-Benchmark costs: " + (end_time - start_time) + " ms")
+    }
   }
 
   def main(args: Array[String]) {
