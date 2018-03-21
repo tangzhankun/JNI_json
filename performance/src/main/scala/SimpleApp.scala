@@ -227,7 +227,7 @@ object SimpleApp {
     val smallDF = spark.read.schema(theSchema).format("json").load(jsonFile)
     smallDF.show()
     val start_time = System.currentTimeMillis()
-    smallDF.agg("ACC_NBR" -> "max", "OPER_TID" -> "avg").show()
+    smallDF.agg("NBILLING_TID" -> "min", "ACC_NBR" -> "max", "OPER_TID" -> "avg").show()
     val end_time = System.currentTimeMillis()
 
     println("CPU End-To-End-Benchmark costs: " + (end_time - start_time) + " ms")
