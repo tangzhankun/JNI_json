@@ -226,7 +226,7 @@ object SimpleApp {
     )
     val smallDF = spark.read.schema(theSchema).format("json").load(jsonFile)
     val start_time = System.currentTimeMillis()
-    smallDF.agg("NBILLING_TID" -> "min", "ACC_NBR" -> "max", "OPER_TID" -> "avg").show()
+    smallDF.agg("NBILLING_TID" -> "min", "ACC_NBR" -> "max", "OPER_TID" -> "avg", "OBILLING_TID" -> "min").show()
     val end_time = System.currentTimeMillis()
 
     println("CPU End-To-End-Benchmark costs: " + (end_time - start_time) + " ms")
@@ -248,10 +248,9 @@ object SimpleApp {
         StructField("NBILLING_TID", StringType, true) ::
         StructField("OPER_TID", StringType, true) :: Nil
     )
-    val smallDF = spark.readStream.schema(theSchema)
-      .json(filepath)
+    val smallDF = spark.readStream.schema(theSchema).format("json").load(jsonFile)
     val start_time = System.currentTimeMillis()
-    val query = smallDF.agg("NBILLING_TID" -> "min", "ACC_NBR" -> "max", "OPER_TID" -> "avg").writeStream
+    val query = smallDF.agg("NBILLING_TID" -> "min", "ACC_NBR" -> "max", "OPER_TID" -> "avg", "OBILLING_TID" -> "min").writeStream
       .outputMode("complete")
       .format("console")
       .start()
@@ -261,7 +260,24 @@ object SimpleApp {
       query.stop()
     }
     val end_time = System.currentTimeMillis()
-    println("[Streaming]CPU End-To-End-Benchmark costs: " + (end_time - start_time) + " ms")
+    println("[Streaming] CPU End-To-End-Benchmark costs: " + (end_time - start_time) + " ms")
+
+    if (useFPGA) {
+      val smallDF = spark.readStream.schema(theSchema).format("json_FPGA").load(jsonFile)
+      val start_time = System.currentTimeMillis()
+      // we must declare four functions on four columns because our FPGA returns fixed 4 columns data
+      val query = smallDF.agg("NBILLING_TID" -> "min", "ACC_NBR" -> "max", "OPER_TID" -> "avg", "OBILLING_TID" -> "min").writeStream
+        .outputMode("complete")
+        .format("console")
+        .start()
+      try {
+        query.processAllAvailable()
+      } finally {
+        query.stop()
+      }
+      val end_time = System.currentTimeMillis()
+      println("[Streaming] FPGA End-To-End-Benchmark costs: " + (end_time - start_time) + " ms")
+    }
   }
 
   def main(args: Array[String]) {
