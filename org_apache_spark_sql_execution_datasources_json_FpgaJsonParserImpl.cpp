@@ -1,11 +1,23 @@
 #include "org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl.h"
+
 #include "unsafeRow.h"
-#include "wasai/libgendma.h"
+
 #include <bitset>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
 using namespace std;
+
+// use this flag to use different version of FPGA API
+#ifdef OLD_FPGA_IP
+#pragma message "***Use old wasai API***"
+#include "wasai_old/libgendma.h"
+#else
+#pragma message "***Use new wasai API***"
+#include "wasai_new/libgendma.h"
+#endif
+
+
 
 #define RESULT_SIZE 1024*1024*1024
 #define MAX_FIELDS 4
@@ -38,8 +50,8 @@ signed char* populateUnsafeRows(int count, long& buffer_size, bool useFPGAFLAG, 
     //unsigned char* unsafeRows = new unsigned char[RESULT_SIZE];
     unsigned char* unsafeRows = malloc(RESULT_SIZE);
     memset(unsafeRows, 0, RESULT_SIZE);
-    wasai_dma_transfer_without_file(fpga_fd, jsonStr, jsonStrSize);
-    wasai_read_row(fpga_fd, RESULT_SIZE, &unsafeRows);
+    //wasai_dma_transfer_without_file(fpga_fd, jsonStr, jsonStrSize, unsafeRows);
+    //wasai_read_row(fpga_fd, RESULT_SIZE, &unsafeRows);
     buffer_size = wasa_row_total(fpga_fd);
     return unsafeRows;
   }
@@ -55,7 +67,7 @@ signed char* populateUnsafeRowFromFile(long& buffer_size, bool useFPGAFLAG, cons
     FILE *fptr = NULL;
     fptr=fopen(filePathStr, "rb+");
     if (fptr==NULL) {
-        cerr<<"Fail to open .json file !"<<endl;
+        cerr<<"Fail to open .json file:"<<filePathStr<<endl;
         return NULL;
     }
     fseek(fptr, 0, SEEK_END);
@@ -63,8 +75,13 @@ signed char* populateUnsafeRowFromFile(long& buffer_size, bool useFPGAFLAG, cons
 
     unsigned char* unsafeRows = malloc(RESULT_SIZE);
     memset(unsafeRows, 0, RESULT_SIZE);
+    #ifdef OLD_FPGA_IP
     wasai_dma_transfer(fpga_fd, fptr, data_len);
     wasai_read_row(fpga_fd, RESULT_SIZE, &unsafeRows);
+    #else
+    wasai_dma_transfer(fpga_fd, fptr, data_len, unsafeRows);
+    // this API was removed in the new version of Wasai API
+    #endif
     buffer_size = wasa_row_total(fpga_fd);
     return unsafeRows;
   }
