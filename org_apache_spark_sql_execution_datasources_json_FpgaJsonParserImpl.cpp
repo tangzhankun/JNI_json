@@ -14,7 +14,7 @@ using namespace std;
 #include "wasai_old/libgendma.h"
 #else
 #pragma message "***Use new wasai API***"
-#include "wasai_new/libgendma.h"
+#include "wasai_new3/libgendma.h"
 #endif
 
 
@@ -75,6 +75,7 @@ signed char* populateUnsafeRowFromFile(long& buffer_size, bool useFPGAFLAG, cons
 
     unsigned char* unsafeRows = malloc(RESULT_SIZE);
     memset(unsafeRows, 0, RESULT_SIZE);
+    long start_time = currentTime();
     #ifdef OLD_FPGA_IP
     wasai_dma_transfer(fpga_fd, fptr, data_len);
     wasai_read_row(fpga_fd, RESULT_SIZE, &unsafeRows);
@@ -83,6 +84,8 @@ signed char* populateUnsafeRowFromFile(long& buffer_size, bool useFPGAFLAG, cons
     // this API was removed in the new version of Wasai API
     #endif
     buffer_size = wasa_row_total(fpga_fd);
+    long end_time = currentTime();
+    cerr<<"[JNI]It spends "<<(end_time - start_time)<<" ms to convert "<<filePathStr<<"'s json strings"<<endl;
     return unsafeRows;
   }
 }
@@ -94,7 +97,7 @@ int init_accelerator(bool use_hardware) {
     if (fpga_fd == -1) {
       return 0;
     }
-    return 1; 
+    return 1;
   } else {
     return 1;
   }
@@ -189,7 +192,7 @@ JNIEXPORT jboolean JNICALL Java_org_apache_spark_sql_execution_datasources_json_
   const char* fieldNames = env->GetStringUTFChars(schemaFieldNames, 0);
   //cerr<<"Got fieldNames from scala: "<<fieldNames<<endl;
   jint fieldNamesStrsize = env->GetStringLength(schemaFieldNames);
-  jint* fieldTypes = env->GetIntArrayElements(schemaFieldTypes, 0); 
+  jint* fieldTypes = env->GetIntArrayElements(schemaFieldTypes, 0);
   set_schema(fieldNames, fieldNamesStrsize, fieldTypes);
   return true;
 }
@@ -211,7 +214,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_apache_spark_sql_execution_datasources_jso
   //cerr<<"[JNI]unsafeRow buffer size is "<< buffer_size << endl;
   jbyteArray ret = env->NewByteArray(buffer_size);
   env->SetByteArrayRegion(ret, 0, buffer_size, unsafeRows);
-  return ret; 
+  return ret;
 }
 JNIEXPORT jlongArray JNICALL Java_org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl_parseJson2
   (JNIEnv *env, jobject obj, jstring json_str) {
@@ -220,10 +223,7 @@ JNIEXPORT jlongArray JNICALL Java_org_apache_spark_sql_execution_datasources_jso
   jint jsonStrSize = env->GetStringLength(json_str);
   int count = 10;
   long buffer_size = 0;
-  long start_time = currentTime();
   signed char *unsafeRows = populateUnsafeRows(count, buffer_size, USE_FPGA_FLAG, jsonStr, jsonStrSize);
-  long end_time = currentTime();
-  cerr<<"[JNI]It spends "<<(end_time - start_time)<<" ms to convert "<<jsonStrSize<<" bytes json strings"<<endl;
   jlongArray ret = env->NewLongArray(2);
   jlong address = (jlong)((void*)(unsafeRows));
   jlong* addr = &address;
@@ -270,8 +270,9 @@ JNIEXPORT void JNICALL Java_org_apache_spark_sql_execution_datasources_json_Fpga
 }
 
 
-int main() {
+int main(int argc, char *argv[]) {
   long buffer_size = 0;
-  create_fake_row_from_bin_file(0, buffer_size);
+  //create_fake_row_from_bin_file(0, buffer_size);
+  populateUnsafeRowFromFile(buffer_size, true, argv[1], 26);
   return 0;
 }
