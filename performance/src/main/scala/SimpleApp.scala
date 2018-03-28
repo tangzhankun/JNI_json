@@ -19,7 +19,9 @@ object SimpleApp {
     }
   }
 
-  def micoBenchmark(spark : SparkSession, filepath : String, useFPGA : Boolean): Unit = {
+  def sqlCountBenchmark(spark : SparkSession, filepath : String, useFPGA : Boolean): Unit = {
+    val file = new File("./sqlCountBenchmark-" + java.time.LocalDate.now.toString + ".log")
+    val bw = new BufferedWriter(new FileWriter(file, true))
     val jsonFile = filepath // Should be some file on your system
     val theSchema = StructType(
       StructField("ACC_NBR", StringType, true) ::
@@ -34,10 +36,11 @@ object SimpleApp {
     val ret = spark.sql(sqlStr)
     ret.show
     val end_time = System.currentTimeMillis()
-
+    println("fileName: " + filepath)
+    bw.write(filepath + "\n")
     println("SQL sentence: " + sqlStr)
-    println("CPU Micro-benchmark costs: " + (end_time - start_time) + " ms")
-
+    println("CPU SQL-Count-benchmark costs: " + (end_time - start_time) + " ms")
+    bw.write("CPU(ms): " + (end_time - start_time))
     if (useFPGA) {
       val smallDF = spark.read.schema(theSchema).format("json_FPGA").load(jsonFile)
       smallDF.createOrReplaceTempView("gdi_mb")
@@ -47,9 +50,11 @@ object SimpleApp {
       ret.show
       val end_time = System.currentTimeMillis()
 
-      println("FPGA Micro-benchmark costs: " + (end_time - start_time) + " ms")
+      println("FPGA SQL-Count-benchmark costs: " + (end_time - start_time) + " ms")
+      bw.write("FPGA(ms): " + (end_time - start_time))
     }
 
+    bw.close()
   }
 
 
@@ -127,7 +132,7 @@ object SimpleApp {
   }
 
   def randomAlphaNumericString(length: Int): String = {
-    val chars = ('0' to '9')
+    val chars = ('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9')
     randomStringFromCharList(length, chars)
   }
 
@@ -145,6 +150,15 @@ object SimpleApp {
       for (j <- 1 to group_count) {
         var someData = List[Row]()
         for (i <- 1 to one_group_row) {
+
+/*
+          someData = someData :+ Row(randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
+            randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
+            randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
+            randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize)
+            )
+
+*/
           someData = someData :+ Row(randomInt(valueSize), randomAlphaNumericString(valueSize),
             randomAlphaNumericString(valueSize), randomInt(valueSize), randomInt(valueSize),
             randomAlphaNumericString(valueSize), randomInt(valueSize), randomInt(valueSize),
@@ -173,6 +187,13 @@ object SimpleApp {
     // remaining rows
     var someData = List[Row]()
     for (i <- 1 to remaining_row) {
+/*
+          someData = someData :+ Row(randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
+            randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
+            randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
+            randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize)
+            )
+*/
           someData = someData :+ Row(randomInt(valueSize), randomAlphaNumericString(valueSize),
             randomAlphaNumericString(valueSize), randomInt(valueSize), randomInt(valueSize),
             randomAlphaNumericString(valueSize), randomInt(valueSize), randomInt(valueSize),
@@ -187,7 +208,6 @@ object SimpleApp {
             randomInt(valueSize), randomInt(valueSize), randomInt(valueSize),
             randomInt(valueSize), randomInt(valueSize)
            )
-
     }
     val myDF = spark.createDataFrame(
       spark.sparkContext.parallelize(someData),
@@ -216,7 +236,7 @@ object SimpleApp {
 //      }
   }
 
-  def endToEndBenchmark(spark: SparkSession, filepath : String, useFPGA : Boolean): Unit = {
+  def sqlAgg(spark: SparkSession, filepath : String, useFPGA : Boolean): Unit = {
     val jsonFile = filepath // Should be some file on your system
     val theSchema = StructType(
       StructField("ACC_NBR", StringType, true) ::
@@ -293,15 +313,15 @@ object SimpleApp {
         generateUnsafeRowBinary(spark, "people.bin")
         generateUnsafeRowBinary(spark, "Small.bin")
       }
-      case "micro" => {
+      case "sql-count" => {
         val filePath = args(1)
         val useFPGA = args(2).toBoolean
-        micoBenchmark(spark, filePath, useFPGA)
+        sqlCountBenchmark(spark, filePath, useFPGA)
       }
-      case "end-to-end" => {
+      case "sql-agg" => {
         val filePath = args(1)
         val useFPGA = args(2).toBoolean
-        endToEndBenchmark(spark, filePath, useFPGA)
+        sqlAgg(spark, filePath, useFPGA)
       }
       case "streaming" => {
         val filePath = args(1)

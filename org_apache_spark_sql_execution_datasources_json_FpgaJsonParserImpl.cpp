@@ -19,7 +19,7 @@ using namespace std;
 
 
 
-#define RESULT_SIZE 0x80000000
+#define RESULT_SIZE 5*1024*1024*1024
 #define MAX_FIELDS 4
 #define USE_FPGA_FLAG true
 #define FPGA_FD_PATH "/dev/wasai0"
@@ -245,10 +245,7 @@ JNIEXPORT jlongArray JNICALL Java_org_apache_spark_sql_execution_datasources_jso
   jint filePathSize = env->GetStringLength(filepath_str);
   int count = 10;
   long buffer_size = 0;
-  long start_time = currentTime();
   signed char *unsafeRows = populateUnsafeRowFromFile(buffer_size, USE_FPGA_FLAG, filePath, filePathSize);
-  long end_time = currentTime();
-  cerr<<"[JNI]It spends "<<(end_time - start_time)<<" ms to convert "<<filePath<<"'s json strings"<<endl;
   jlongArray ret = env->NewLongArray(2);
   jlong address = (jlong)((void*)(unsafeRows));
   jlong* addr = &address;
