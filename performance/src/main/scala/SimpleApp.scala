@@ -22,6 +22,7 @@ object SimpleApp {
   def sqlCountBenchmark(spark : SparkSession, filepath : String, useFPGA : Boolean): Unit = {
     val file = new File("./sqlCountBenchmark-" + java.time.LocalDate.now.toString + ".log")
     val bw = new BufferedWriter(new FileWriter(file, true))
+    bw.write("-----------\n")
     val jsonFile = filepath // Should be some file on your system
     val theSchema = StructType(
       StructField("ACC_NBR", StringType, true) ::
@@ -40,7 +41,7 @@ object SimpleApp {
     bw.write(filepath + "\n")
     println("SQL sentence: " + sqlStr)
     println("CPU SQL-Count-benchmark costs: " + (end_time - start_time) + " ms")
-    bw.write("CPU(ms): " + (end_time - start_time))
+    bw.write("CPU(ms): " + (end_time - start_time) + "\n")
     if (useFPGA) {
       val smallDF = spark.read.schema(theSchema).format("json_FPGA").load(jsonFile)
       smallDF.createOrReplaceTempView("gdi_mb")
@@ -51,9 +52,10 @@ object SimpleApp {
       val end_time = System.currentTimeMillis()
 
       println("FPGA SQL-Count-benchmark costs: " + (end_time - start_time) + " ms")
-      bw.write("FPGA(ms): " + (end_time - start_time))
+      bw.write("FPGA(ms): " + (end_time - start_time) + "\n")
     }
 
+    bw.write("\n\n")
     bw.close()
   }
 
@@ -301,7 +303,7 @@ object SimpleApp {
   }
 
   def main(args: Array[String]) {
-    val spark = SparkSession.builder.appName("Micro Benchmark of FPGA JSON IP").master("local[1]").getOrCreate()
+    val spark = SparkSession.builder.appName("Spark FPGA Json Test").master("local[1]").getOrCreate()
     args(0) match {
       case "datagen" => {
         val row_count = args(1).toInt
