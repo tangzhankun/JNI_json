@@ -19,7 +19,7 @@ using namespace std;
 
 
 
-#define RESULT_SIZE 1024*1024*1024
+#define RESULT_SIZE 0x80000000
 #define MAX_FIELDS 4
 #define USE_FPGA_FLAG true
 #define FPGA_FD_PATH "/dev/wasai0"
@@ -85,7 +85,7 @@ signed char* populateUnsafeRowFromFile(long& buffer_size, bool useFPGAFLAG, cons
     #endif
     buffer_size = wasa_row_total(fpga_fd);
     long end_time = currentTime();
-    cerr<<"[JNI]It spends "<<(end_time - start_time)<<" ms to convert "<<filePathStr<<"'s json strings"<<endl;
+    cerr<<"[JNI]It spends "<<(end_time - start_time)<<" ms to convert "<<filePathStr<<"'s json strings. toal is "<<buffer_size<<endl;
     return unsafeRows;
   }
 }
@@ -273,6 +273,13 @@ JNIEXPORT void JNICALL Java_org_apache_spark_sql_execution_datasources_json_Fpga
 int main(int argc, char *argv[]) {
   long buffer_size = 0;
   //create_fake_row_from_bin_file(0, buffer_size);
+  init_accelerator(USE_FPGA_FLAG);
+  wasai_setschema(fpga_fd, 0b1111);
+  wasai_setjsonkey(fpga_fd, 0, 0x0, 0x0, 0x414343, 0x5f4e4252);
+  wasai_setjsonkey(fpga_fd, 1, 0x0, 0x4f42494c, 0x4c494e47, 0x5f544944);
+  wasai_setjsonkey(fpga_fd, 2, 0x0, 0x4e42494c, 0x4c494e47, 0x5f544944);
+  wasai_setjsonkey(fpga_fd, 3, 0x0, 0x0, 0x4f504552, 0x5f544944);
+
   populateUnsafeRowFromFile(buffer_size, true, argv[1], 26);
   return 0;
 }
