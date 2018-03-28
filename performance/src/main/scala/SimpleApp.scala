@@ -1,4 +1,4 @@
-import java.io.{BufferedOutputStream, ByteArrayOutputStream, FileOutputStream, PrintWriter}
+import java.io._
 
 import org.apache.spark.sql.catalyst.{CatalystTypeConverters, InternalRow}
 import org.apache.spark.sql.catalyst.expressions.{UnsafeProjection, UnsafeRow}
