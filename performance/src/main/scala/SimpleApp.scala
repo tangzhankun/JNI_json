@@ -60,8 +60,8 @@ object SimpleApp {
   }
 
 
-  def rightPad(old: String): String = {
-    val paddings = Array.fill[Byte](128-old.length)(0)
+  def rightPad(old: String, targetLength: Int=128): String = {
+    val paddings = Array.fill[Byte](targetLength-old.length)(0)
     val newStr = old + (paddings.map(_.toChar)).mkString
     // this padd with space
     // val newStr = f"$old%-128s"
@@ -129,8 +129,8 @@ object SimpleApp {
     sb.toString
   }
 
-  def randomInt(length: Int): Long = {
-    return util.Random.nextInt(length).toLong
+  def randomInt(max: Int): Long = {
+    return util.Random.nextInt(max).toLong
   }
 
   def randomAlphaNumericString(length: Int): String = {
@@ -152,15 +152,14 @@ object SimpleApp {
       for (j <- 1 to group_count) {
         var someData = List[Row]()
         for (i <- 1 to one_group_row) {
-
-/*
-          someData = someData :+ Row(randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
-            randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
-            randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
-            randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize)
+          // user_id, item_id, behavior_id should be total 512bytes: 1 + 4*(8+2+1) + 6*(n+2+1) -1 + 1 + 1 = 512
+          someData = someData :+ Row(randomInt(1000000).toString(), randomInt(10000).toString(),
+            randomInt(6).toString(), randomInt(123).toString(),
+            randomAlphaNumericString(75), randomAlphaNumericString(75), randomAlphaNumericString(75),
+            randomAlphaNumericString(75), randomAlphaNumericString(75), randomAlphaNumericString(73)
             )
 
-*/
+/*
           someData = someData :+ Row(randomInt(valueSize), randomAlphaNumericString(valueSize),
             randomAlphaNumericString(valueSize), randomInt(valueSize), randomInt(valueSize),
             randomAlphaNumericString(valueSize), randomInt(valueSize), randomInt(valueSize),
@@ -175,6 +174,7 @@ object SimpleApp {
             randomInt(valueSize), randomInt(valueSize), randomInt(valueSize),
             randomInt(valueSize), randomInt(valueSize)
            )
+*/
         }
         val myDF = spark.createDataFrame(
           spark.sparkContext.parallelize(someData),
