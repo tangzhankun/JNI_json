@@ -1,10 +1,11 @@
 #include "org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl.h"
 #include "unsafeRow.h"
-#include "wasai/libgendma.h"
+//#include "wasai/libgendma.h"
 #include <bitset>
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "host/src/fun.h"
 using namespace std;
 
 #define RESULT_SIZE 900*1024*1024
@@ -30,10 +31,13 @@ signed char* populateUnsafeRows(int count, long& buffer_size, bool useFPGAFLAG, 
   } else {
     // dma transfer to FPGA and get row back
     //unsigned char* unsafeRows = new unsigned char[RESULT_SIZE];
-    unsigned char* unsafeRows = malloc(RESULT_SIZE);
-    memset(unsafeRows, 0, RESULT_SIZE);
-    wasai_dma_transfer_without_file(fpga_fd, jsonStr, jsonStrSize);
-    wasai_read_row(fpga_fd, RESULT_SIZE, &unsafeRows);
+    unsigned char* unsafeRows;// = malloc(RESULT_SIZE);
+    //memset(unsafeRows, 0, RESULT_SIZE);
+//    wasai_dma_transfer_without_file(fpga_fd, jsonStr, jsonStrSize);
+//   wasai_read_row(fpga_fd, RESULT_SIZE, &unsafeRows);
+    FILE *fp;
+    fp=fopen(jsonStr,'r');
+    fun(count,fp,unsafeRows);
     //buffer_size = wasa_row_total(fpga_fd);
     return unsafeRows;
   }
@@ -43,7 +47,7 @@ signed char* populateUnsafeRows(int count, long& buffer_size, bool useFPGAFLAG, 
 
 int init_accelerator(bool use_hardware) {
   if (use_hardware) {
-    fpga_fd = wasai_init(FPGA_FD_PATH);
+//    fpga_fd = wasai_init(FPGA_FD_PATH);
     if (fpga_fd == -1) {
       return 0;
     }
@@ -101,7 +105,7 @@ void set_schema(const char* fieldNames, jint strSize, jint* fieldTypes) {
   int typeBits = getFieldTypeBits(MAX_FIELDS, fieldTypes);
   cerr<<"[JNI]typeBits is: 0b"<<std::bitset<MAX_FIELDS>(typeBits)<<endl;
 
-  wasai_setschema(fpga_fd, typeBits);
+  //wasai_setschema(fpga_fd, typeBits);
   int field_index = 0;
   char* pch = strtok( const_cast<char *>(fieldNames), ",");
   int number_count = 4;
@@ -121,10 +125,10 @@ void set_schema(const char* fieldNames, jint strSize, jint* fieldTypes) {
     field_index++;
   }
 */
-  wasai_setjsonkey(fpga_fd, 0, 0x0, 0x0, 0x414343, 0x5f4e4252);
-  wasai_setjsonkey(fpga_fd, 1, 0x0, 0x4f42494c, 0x4c494e47, 0x5f544944);
-  wasai_setjsonkey(fpga_fd, 2, 0x0, 0x4e42494c, 0x4c494e47, 0x5f544944);
-  wasai_setjsonkey(fpga_fd, 3, 0x0, 0x0, 0x4f504552, 0x5f544944);
+  //wasai_setjsonkey(fpga_fd, 0, 0x0, 0x0, 0x414343, 0x5f4e4252);
+  //wasai_setjsonkey(fpga_fd, 1, 0x0, 0x4f42494c, 0x4c494e47, 0x5f544944);
+  //wasai_setjsonkey(fpga_fd, 2, 0x0, 0x4e42494c, 0x4c494e47, 0x5f544944);
+  //wasai_setjsonkey(fpga_fd, 3, 0x0, 0x0, 0x4f504552, 0x5f544944);
 }
 
 JNIEXPORT jboolean JNICALL Java_org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl_setSchema
@@ -183,7 +187,7 @@ JNIEXPORT jlongArray JNICALL Java_org_apache_spark_sql_execution_datasources_jso
   env->SetLongArrayRegion(ret, 0, 1, addr);
   env->SetLongArrayRegion(ret, 1, 1, total_size);
   if (true == USE_FPGA_FLAG) {
-    wasai_destroy(fpga_fd);
+    //wasai_destroy(fpga_fd);
   }
   return ret;
 }
