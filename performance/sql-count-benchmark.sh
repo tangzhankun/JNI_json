@@ -1,12 +1,7 @@
 #!/bin/bash
-export SPARK_HOME=/home/wasaisw1/forIntel/spark_integration/spark
+export SPARK_HOME=/opt/spark-2.2.1-SNAPSHOT-bin-json-spark-debug
+export CL_CONTEXT_COMPILER_MODE_ALTERA=3
 declare -a filePaths=("./10-row-37col-30-char.json"
-		"./100-row-37col-30-char.json"
-		"./1000-row-37col-30-char.json"
-		"./10000-row-37col-30-char.json"
-		"./100000-row-37col-30-char.json"
-		"./1000000-row-37col-30-char.json"
-		"./1500000-row-37col-30-char.json"
 		)
 for path in "${filePaths[@]}"
 do
