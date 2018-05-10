@@ -1,28 +1,16 @@
 #include "org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl.h"
 
 #include "unsafeRow.h"
-
 #include <bitset>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include "host/src/fun.h"
 using namespace std;
-
-// use this flag to use different version of FPGA API
-#ifdef OLD_FPGA_IP
-#pragma message "***Use old wasai API***"
-#include "wasai_old/libgendma.h"
-#else
-#pragma message "***Use new wasai API***"
-#include "wasai_new3/libgendma.h"
-#endif
-
-
 
 #define RESULT_SIZE 5*1024*1024*1024
 #define MAX_FIELDS 4
 #define USE_FPGA_FLAG true
-#define FPGA_FD_PATH "/dev/wasai0"
 static int fpga_fd;
 
 long currentTime() {
@@ -48,11 +36,14 @@ signed char* populateUnsafeRows(int count, long& buffer_size, bool useFPGAFLAG, 
   } else {
     // dma transfer to FPGA and get row back
     //unsigned char* unsafeRows = new unsigned char[RESULT_SIZE];
-    unsigned char* unsafeRows = malloc(RESULT_SIZE);
-    memset(unsafeRows, 0, RESULT_SIZE);
-    //wasai_dma_transfer_without_file(fpga_fd, jsonStr, jsonStrSize, unsafeRows);
-    //wasai_read_row(fpga_fd, RESULT_SIZE, &unsafeRows);
-    buffer_size = wasa_row_total(fpga_fd);
+    unsigned char* unsafeRows;// = malloc(RESULT_SIZE);
+    //memset(unsafeRows, 0, RESULT_SIZE);
+//    wasai_dma_transfer_without_file(fpga_fd, jsonStr, jsonStrSize);
+//   wasai_read_row(fpga_fd, RESULT_SIZE, &unsafeRows);
+    FILE *fp;
+    fp=fopen(jsonStr,'r');
+    fun(count,fp,unsafeRows);
+    //buffer_size = wasa_row_total(fpga_fd);
     return unsafeRows;
   }
 }
@@ -63,7 +54,7 @@ signed char* populateUnsafeRowFromFile(long& buffer_size, bool useFPGAFLAG, cons
   } else {
     // dma transfer to FPGA and get row back
     //unsigned char* unsafeRows = new unsigned char[RESULT_SIZE];
-
+    int count = 10;
     FILE *fptr = NULL;
     fptr=fopen(filePathStr, "rb+");
     if (fptr==NULL) {
@@ -73,19 +64,12 @@ signed char* populateUnsafeRowFromFile(long& buffer_size, bool useFPGAFLAG, cons
     fseek(fptr, 0, SEEK_END);
     int data_len = ftell(fptr);
 
-    unsigned char* unsafeRows = malloc(RESULT_SIZE);
+    unsigned char* unsafeRows;
     memset(unsafeRows, 0, RESULT_SIZE);
     long start_time = currentTime();
-    #ifdef OLD_FPGA_IP
-    wasai_dma_transfer(fpga_fd, fptr, data_len);
-    wasai_read_row(fpga_fd, RESULT_SIZE, &unsafeRows);
-    #else
-    wasai_dma_transfer(fpga_fd, fptr, data_len, unsafeRows);
-    // this API was removed in the new version of Wasai API
-    #endif
-    buffer_size = wasa_row_total(fpga_fd);
+    fun(count,fptr,unsafeRows);
     long end_time = currentTime();
-    cerr<<"[JNI]It spends "<<(end_time - start_time)<<" ms to convert "<<filePathStr<<"'s json strings. toal is "<<buffer_size<<endl;
+    cerr<<"[JNI]It spends "<<(end_time - start_time)<<" ms to convert "<<filePathStr<<"'s json strings. toal is unknown(should be a fixed size)."<<endl;
     return unsafeRows;
   }
 }
@@ -93,7 +77,7 @@ signed char* populateUnsafeRowFromFile(long& buffer_size, bool useFPGAFLAG, cons
 
 int init_accelerator(bool use_hardware) {
   if (use_hardware) {
-    fpga_fd = wasai_init(FPGA_FD_PATH);
+//    fpga_fd = wasai_init(FPGA_FD_PATH);
     if (fpga_fd == -1) {
       return 0;
     }
@@ -151,7 +135,7 @@ void set_schema(const char* fieldNames, jint strSize, jint* fieldTypes) {
   int typeBits = getFieldTypeBits(MAX_FIELDS, fieldTypes);
   //cerr<<"[JNI]typeBits is: 0b"<<std::bitset<MAX_FIELDS>(typeBits)<<endl;
 
-  wasai_setschema(fpga_fd, typeBits);
+  //wasai_setschema(fpga_fd, typeBits);
   int field_index = 0;
   char* pch = strtok( const_cast<char *>(fieldNames), ",");
   int number_count = 4;
@@ -171,10 +155,10 @@ void set_schema(const char* fieldNames, jint strSize, jint* fieldTypes) {
     field_index++;
   }
 */
-  wasai_setjsonkey(fpga_fd, 0, 0x0, 0x0, 0x414343, 0x5f4e4252);
-  wasai_setjsonkey(fpga_fd, 1, 0x0, 0x4f42494c, 0x4c494e47, 0x5f544944);
-  wasai_setjsonkey(fpga_fd, 2, 0x0, 0x4e42494c, 0x4c494e47, 0x5f544944);
-  wasai_setjsonkey(fpga_fd, 3, 0x0, 0x0, 0x4f504552, 0x5f544944);
+  //wasai_setjsonkey(fpga_fd, 0, 0x0, 0x0, 0x414343, 0x5f4e4252);
+  //wasai_setjsonkey(fpga_fd, 1, 0x0, 0x4f42494c, 0x4c494e47, 0x5f544944);
+  //wasai_setjsonkey(fpga_fd, 2, 0x0, 0x4e42494c, 0x4c494e47, 0x5f544944);
+  //wasai_setjsonkey(fpga_fd, 3, 0x0, 0x0, 0x4f504552, 0x5f544944);
 }
 
 JNIEXPORT jboolean JNICALL Java_org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl_setSchema
@@ -271,12 +255,6 @@ int main(int argc, char *argv[]) {
   long buffer_size = 0;
   //create_fake_row_from_bin_file(0, buffer_size);
   init_accelerator(USE_FPGA_FLAG);
-  wasai_setschema(fpga_fd, 0b1111);
-  wasai_setjsonkey(fpga_fd, 0, 0x0, 0x0, 0x414343, 0x5f4e4252);
-  wasai_setjsonkey(fpga_fd, 1, 0x0, 0x4f42494c, 0x4c494e47, 0x5f544944);
-  wasai_setjsonkey(fpga_fd, 2, 0x0, 0x4e42494c, 0x4c494e47, 0x5f544944);
-  wasai_setjsonkey(fpga_fd, 3, 0x0, 0x0, 0x4f504552, 0x5f544944);
-
   populateUnsafeRowFromFile(buffer_size, true, argv[1], 26);
   return 0;
 }
