@@ -152,11 +152,11 @@ object SimpleApp {
       for (j <- 1 to group_count) {
         var someData = List[Row]()
         for (i <- 1 to one_group_row) {
-          // user_id, item_id, behavior_id should be total 512bytes: 1 + 4*(8+2+1) + 6*(n+2+1) -1 + 1 + 1 = 512
+          // user_id, item_id, behavior_id should be total 512bytes(including schema names and colon, quotation mark)
           someData = someData :+ Row(randomInt(1000000).toString(), randomInt(10000).toString(),
             randomInt(6).toString(), randomInt(123).toString(),
             randomAlphaNumericString(75), randomAlphaNumericString(75), randomAlphaNumericString(75),
-            randomAlphaNumericString(75), randomAlphaNumericString(75), randomAlphaNumericString(73)
+            randomAlphaNumericString(75), randomAlphaNumericString(75), randomAlphaNumericString(105)
             )
 
 /*
@@ -181,7 +181,7 @@ object SimpleApp {
           schema
         )
         myDF.toJSON.collect().foreach((s: String) => {
-          pw.write(s)
+          pw.write(rightPad(s,511))
           pw.write("\n")
         })
       }
@@ -189,13 +189,12 @@ object SimpleApp {
     // remaining rows
     var someData = List[Row]()
     for (i <- 1 to remaining_row) {
-/*
-          someData = someData :+ Row(randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
-            randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
-            randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize),
-            randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize), randomAlphaNumericString(valueSize)
+          someData = someData :+ Row(randomInt(1000000).toString(), randomInt(10000).toString(),
+            randomInt(6).toString(), randomInt(123).toString(),
+            randomAlphaNumericString(75), randomAlphaNumericString(75), randomAlphaNumericString(75),
+            randomAlphaNumericString(75), randomAlphaNumericString(75), randomAlphaNumericString(105)
             )
-*/
+/*
           someData = someData :+ Row(randomInt(valueSize), randomAlphaNumericString(valueSize),
             randomAlphaNumericString(valueSize), randomInt(valueSize), randomInt(valueSize),
             randomAlphaNumericString(valueSize), randomInt(valueSize), randomInt(valueSize),
@@ -210,13 +209,15 @@ object SimpleApp {
             randomInt(valueSize), randomInt(valueSize), randomInt(valueSize),
             randomInt(valueSize), randomInt(valueSize)
            )
+*/
     }
     val myDF = spark.createDataFrame(
       spark.sparkContext.parallelize(someData),
       schema
     )
+    val tempStr = ""
     myDF.toJSON.collect().foreach((s: String) => {
-      pw.write(s)
+      pw.write(rightPad(s,511))
       pw.write("\n")
     })
 
