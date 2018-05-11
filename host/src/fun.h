@@ -60,25 +60,8 @@ std::string jsonFilePath;
 
 */
 // Entry point.
-int fun(unsigned json_lines_count, FILE *fp,char *unsafeRows) 
+int fun(unsigned json_lines_count, FILE *fp,char **unsafeRows) 
 {
-  /*
-  std::string jsonFilePath;
-  Options options(argc, argv);
-  if(options.has("jsonline")) {
-    json_lines_count = options.get<unsigned>("jsonline");
-    printf("json lines count: %d.\n", json_lines_count);
-  }
-  if(options.has("jsonfile")) {
-    jsonFilePath = options.get<std::string>("jsonfile");
-    printf("json file path: %s. \n", jsonFilePath.c_str());
-    FILE *fp = fopen(jsonFilePath.c_str(), "r");
-    
-    if (!fp) {
-      fprintf(stderr, "Cannot open file %s, Exiting...\n", jsonFilePath.c_str());
-      exit(-1);
-    }
-*/
     fseek(fp, 0L, SEEK_END);
     json_file_size = ftell(fp);
     rewind(fp);
@@ -101,7 +84,7 @@ int fun(unsigned json_lines_count, FILE *fp,char *unsafeRows)
   }
 
   // Run the kernel.
-  unsafeRows = run();
+  *unsafeRows = run();
 
   // Free the resources allocated
   cleanup();

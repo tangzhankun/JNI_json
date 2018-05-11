@@ -42,7 +42,7 @@ signed char* populateUnsafeRows(int count, long& buffer_size, bool useFPGAFLAG, 
 //   wasai_read_row(fpga_fd, RESULT_SIZE, &unsafeRows);
     FILE *fp;
     fp=fopen(jsonStr,'r');
-    fun(count,fp,unsafeRows);
+    fun(count,fp,&unsafeRows);
     //buffer_size = wasa_row_total(fpga_fd);
     return unsafeRows;
   }
@@ -65,7 +65,7 @@ signed char* populateUnsafeRowFromFile(long& buffer_size, bool useFPGAFLAG, cons
     int data_len = ftell(fptr);
 
     unsigned char* unsafeRows;
-    memset(unsafeRows, 0, RESULT_SIZE);
+    //memset(unsafeRows, 0, RESULT_SIZE);
     long start_time = currentTime();
     fun(count,fptr,unsafeRows);
     long end_time = currentTime();
@@ -233,7 +233,7 @@ JNIEXPORT jlongArray JNICALL Java_org_apache_spark_sql_execution_datasources_jso
   jlongArray ret = env->NewLongArray(2);
   jlong address = (jlong)((void*)(unsafeRows));
   jlong* addr = &address;
-  jlong* total_size = &buffer_size;
+  jlong* total_size = 560;
   cerr<<"[JNI]the buffer addr is "<<std::dec<<address<<endl;
   cerr<<"[JNI]unsafeRow buffer size is "<<std::dec<< *total_size << endl;
   env->SetLongArrayRegion(ret, 0, 1, addr);

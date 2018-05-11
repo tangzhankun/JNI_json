@@ -25,15 +25,14 @@ object SimpleApp {
     bw.write("-----------\n")
     val jsonFile = filepath // Should be some file on your system
     val theSchema = StructType(
-      StructField("ACC_NBR", StringType, true) ::
-      StructField("OBILLING_TID", StringType, true) ::
-      StructField("NBILLING_TID", StringType, true) ::
-      StructField("OPER_TID", StringType, true) :: Nil
+      StructField("BEHAVIOR_ID", StringType, true) ::
+      StructField("ITEM_ID", StringType, true) ::
+      StructField("USER_ID", StringType, true) :: Nil
     )
     val smallDF = spark.read.schema(theSchema).format("json").load(jsonFile)
     smallDF.createOrReplaceTempView("gdi_mb")
     val start_time = System.currentTimeMillis()
-    val sqlStr = "select count(OPER_TID), count(NBILLING_TID), count(OBILLING_TID), count(ACC_NBR) from gdi_mb"
+    val sqlStr = "select count(BEHAVIOR_ID), count(ITEM_ID), count(USER_ID) from gdi_mb"
     val ret = spark.sql(sqlStr)
     ret.show
     val end_time = System.currentTimeMillis()
@@ -46,7 +45,7 @@ object SimpleApp {
       val smallDF = spark.read.schema(theSchema).format("json_FPGA").load(jsonFile)
       smallDF.createOrReplaceTempView("gdi_mb")
       val start_time = System.currentTimeMillis()
-      val sqlStr = "select count(OPER_TID), count(NBILLING_TID), count(OBILLING_TID), count(ACC_NBR) from gdi_mb"
+      val sqlStr = "select count(BEHAVIOR_ID), count(ITEM_ID), count(USER_ID) from gdi_mb"
       val ret = spark.sql(sqlStr)
       ret.show
       val end_time = System.currentTimeMillis()
