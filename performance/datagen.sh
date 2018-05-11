@@ -1,4 +1,6 @@
 #!/bin/bash
+# to avoid CDH environment conflicts or will report connect HDFS error
+unset SPARK_DIST_CLASSPATH
 export SPARK_HOME=/opt/spark-2.2.1-SNAPSHOT-bin-json-spark-debug
 for chars in 30
 do
