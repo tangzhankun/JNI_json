@@ -9,7 +9,7 @@ do
   $SPARK_HOME/bin/spark-submit \
     --class "SimpleApp" \
     --master local[1] \
-    target/scala-2.11/fpga-json-performance_2.11-1.0.jar datagen $lines ./$lines-row-10col-total-512bytes.json $chars
+    target/scala-2.11/fpga-json-performance_2.11-1.0.jar datagen $lines /tmp/$lines-row-10col-total-512bytes.json $chars
   sleep 5
   done
 done

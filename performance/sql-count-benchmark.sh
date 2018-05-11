@@ -1,7 +1,7 @@
 #!/bin/bash
 export SPARK_HOME=/opt/spark-2.2.1-SNAPSHOT-bin-json-spark-debug
 export CL_CONTEXT_COMPILER_MODE_ALTERA=3
-declare -a filePaths=("./10-row-37col-30-char.json"
+declare -a filePaths=("./BigReal.json"
 		)
 for path in "${filePaths[@]}"
 do
@@ -10,6 +10,6 @@ $SPARK_HOME/bin/spark-submit \
   --class "SimpleApp" \
   --master local[1] \
   --driver-memory 6G \
-  target/scala-2.11/fpga-json-performance_2.11-1.0.jar sql-count $path true
+  target/scala-2.11/fpga-json-performance_2.11-1.0.jar sql-count $path false
 sleep 3
 done
