@@ -302,6 +302,47 @@ object SimpleApp {
     }
   }
 
+  def streamingFromKafkaEndToEndBenchmark(spark: SparkSession, filepath: String, useFPGA : Boolean): Unit = {
+    val jsonFile = filepath // Should be some file on your system
+    val theSchema = StructType(
+      StructField("ACC_NBR", StringType, true) ::
+        StructField("OBILLING_TID", StringType, true) ::
+        StructField("NBILLING_TID", StringType, true) ::
+        StructField("OPER_TID", StringType, true) :: Nil
+    )
+    val smallDF = spark.readStream.schema(theSchema).format("json").load(jsonFile)
+    val start_time = System.currentTimeMillis()
+    val query = smallDF.agg("NBILLING_TID" -> "min", "ACC_NBR" -> "max", "OPER_TID" -> "avg", "OBILLING_TID" -> "min").writeStream
+      .outputMode("complete")
+      .format("console")
+      .start()
+    try {
+      smallDF.write.parquet("/tmp/user_actions.parquet")
+      query.processAllAvailable()
+    } finally {
+      query.stop()
+    }
+    val end_time = System.currentTimeMillis()
+    println("[Streaming] CPU End-To-End-Benchmark costs: " + (end_time - start_time) + " ms")
+
+    if (useFPGA) {
+      val smallDF = spark.readStream.schema(theSchema).format("json_FPGA").load(jsonFile)
+      val start_time = System.currentTimeMillis()
+      // we must declare four functions on four columns because our FPGA returns fixed 4 columns data
+      val query = smallDF.agg("NBILLING_TID" -> "min", "ACC_NBR" -> "max", "OPER_TID" -> "avg", "OBILLING_TID" -> "min").writeStream
+        .outputMode("complete")
+        .format("console")
+        .start()
+      try {
+        query.processAllAvailable()
+      } finally {
+        query.stop()
+      }
+      val end_time = System.currentTimeMillis()
+      println("[Streaming] FPGA End-To-End-Benchmark costs: " + (end_time - start_time) + " ms")
+    }
+  }
+
   def main(args: Array[String]) {
     val spark = SparkSession.builder.appName("Spark FPGA Json Test").master("local[1]").getOrCreate()
     args(0) match {
@@ -329,6 +370,11 @@ object SimpleApp {
         val filePath = args(1)
         val useFPGA = args(2).toBoolean
         streamingEndToEndBenchmark(spark, filePath, useFPGA)
+      }
+      case "streaming_kafka" => {
+        val filePath = args(1)
+        val useFPGA = args(2).toBoolean
+        streamingFromKafkaEndToEndBenchmark(spark, filePath, useFPGA)
       }
     }
 
