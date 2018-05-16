@@ -1,11 +1,16 @@
 import java.io._
 
+import org.apache.spark.ml.linalg.SparseVector
+import org.apache.spark.mllib.recommendation.Rating
+import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.{CatalystTypeConverters, InternalRow}
 import org.apache.spark.sql.catalyst.expressions.{UnsafeProjection, UnsafeRow}
 import org.apache.spark.sql.catalyst.json.{JSONOptions, JacksonParser}
 import org.apache.spark.sql.execution.UnsafeRowSerializer
 import org.apache.spark.sql.{Row, SparkSession}
 import org.apache.spark.sql.types._
+
+import scala.collection.mutable
 
 object SimpleApp {
   private def toUnsafeRow(row: Row, schema: Array[DataType]): UnsafeRow = {
@@ -225,6 +230,35 @@ object SimpleApp {
     //randomDF.toJSON.collect().foreach(println)
   }
 
+  def alsDataGen(sparkSession: SparkSession, userCount:Int, itemCount:Int): Unit = {
+    import org.apache.spark.mllib.random._
+    import org.apache.spark.mllib.linalg._
+    val sparsity = 0.05
+    val numPartition = 2
+    val rawData: RDD[Vector] = RandomRDDs.normalVectorRDD(sparkSession.sparkContext, userCount, itemCount, numPartition)
+    val rng = new java.util.Random()
+    val data = rawData.map(v => {
+      val a = Array.fill[Double](v.size)(0.0)
+      v.foreachActive((i, vi) => {
+        if (rng.nextDouble() <= sparsity) {
+          a(i) = vi
+        }
+      })
+      Vectors.dense(a).toSparse
+    })
+    val ratingData = data.zipWithIndex().flatMap{
+      case(v,i) =>
+        val arr = mutable.ArrayBuilder.make[Rating]
+        arr.sizeHint(v.numActives)
+        v.foreachActive{(ii, vi) =>
+          arr += Rating(i.toInt, ii.toInt, vi)
+        }
+        arr.result()
+    }.foreach(print(_))
+
+  }
+
+
   def CPUJSONPerformance(sparkSession: SparkSession): Unit = {
 //    val actulSchema = StructType()
 //    val extraOptions = new scala.collection.mutable.HashMap[String, String]
@@ -265,14 +299,13 @@ object SimpleApp {
   def streamingEndToEndBenchmark(spark: SparkSession, filepath: String, useFPGA : Boolean): Unit = {
     val jsonFile = filepath // Should be some file on your system
     val theSchema = StructType(
-      StructField("ACC_NBR", StringType, true) ::
-        StructField("OBILLING_TID", StringType, true) ::
-        StructField("NBILLING_TID", StringType, true) ::
-        StructField("OPER_TID", StringType, true) :: Nil
+      StructField("BEHAVIOR_ID", StringType, true) ::
+        StructField("ITEM_ID", StringType, true) ::
+        StructField("USER_ID", StringType, true) :: Nil
     )
     val smallDF = spark.readStream.schema(theSchema).format("json").load(jsonFile)
     val start_time = System.currentTimeMillis()
-    val query = smallDF.agg("NBILLING_TID" -> "min", "ACC_NBR" -> "max", "OPER_TID" -> "avg", "OBILLING_TID" -> "min").writeStream
+    val query = smallDF.agg("BEHAVIOR_ID" -> "min", "ITEM_ID" -> "max", "USER_ID" -> "avg").writeStream
       .outputMode("complete")
       .format("console")
       .start()
@@ -288,7 +321,7 @@ object SimpleApp {
       val smallDF = spark.readStream.schema(theSchema).format("json_FPGA").load(jsonFile)
       val start_time = System.currentTimeMillis()
       // we must declare four functions on four columns because our FPGA returns fixed 4 columns data
-      val query = smallDF.agg("NBILLING_TID" -> "min", "ACC_NBR" -> "max", "OPER_TID" -> "avg", "OBILLING_TID" -> "min").writeStream
+      val query = smallDF.agg("BEHAVIOR_ID" -> "min", "ITEM_ID" -> "max", "USER_ID" -> "avg").writeStream
         .outputMode("complete")
         .format("console")
         .start()
@@ -305,14 +338,31 @@ object SimpleApp {
   def streamingFromKafkaEndToEndBenchmark(spark: SparkSession, filepath: String, useFPGA : Boolean): Unit = {
     val jsonFile = filepath // Should be some file on your system
     val theSchema = StructType(
-      StructField("ACC_NBR", StringType, true) ::
-        StructField("OBILLING_TID", StringType, true) ::
-        StructField("NBILLING_TID", StringType, true) ::
-        StructField("OPER_TID", StringType, true) :: Nil
+      StructField("BEHAVIOR_ID", StringType, true) ::
+        StructField("ITEM_ID", StringType, true) ::
+        StructField("USER_ID", StringType, true) :: Nil
     )
+
+//    val kafkaDF = spark.readStream
+//      .format("kafka")
+//      .option("kafka.bootstrap.servers", "localhost:9092")
+//      .option("subscribe", "Hello-Kafka")
+//      .option("startingOffsets", "earliest")
+//      .load()
+//    import org.apache.spark.sql.functions.{from_json, col}
+//    kafkaDF.select(col("value").cast("string")).mapPartitions { iter =>
+//      val str = iter.map(_.getStruct(0)).mkString("\n")
+//      val parson = _
+//      Iterator(parson)
+//    }
+//    kafkaDF.select(from_json(col("value").cast("string"),theSchema))
+//      .writeStream.outputMode("append").format("json").option("path","/tmp/kafka_sink.json")
+//      .option("checkpointLocation", "/tmp/")
+//      .start().processAllAvailable()
+
     val smallDF = spark.readStream.schema(theSchema).format("json").load(jsonFile)
     val start_time = System.currentTimeMillis()
-    val query = smallDF.agg("NBILLING_TID" -> "min", "ACC_NBR" -> "max", "OPER_TID" -> "avg", "OBILLING_TID" -> "min").writeStream
+    val query = smallDF.agg("BEHAVIOR_ID" -> "min", "ITEM_ID" -> "max", "USER_ID" -> "avg").writeStream
       .outputMode("complete")
       .format("console")
       .start()
@@ -352,6 +402,11 @@ object SimpleApp {
         val valueSize = args(3).toInt
         dataGen(spark, row_count, pathName, valueSize)
       }
+      case "als_datagen" => {
+        val user_count = args(1).toInt
+        val item_count = args(2).toInt
+        alsDataGen(spark, user_count, item_count)
+      }
       case "bingen" => {
         generateUnsafeRowBinary(spark, "people.bin")
         generateUnsafeRowBinary(spark, "Small.bin")
@@ -371,11 +426,11 @@ object SimpleApp {
         val useFPGA = args(2).toBoolean
         streamingEndToEndBenchmark(spark, filePath, useFPGA)
       }
-      case "streaming_kafka" => {
-        val filePath = args(1)
-        val useFPGA = args(2).toBoolean
-        streamingFromKafkaEndToEndBenchmark(spark, filePath, useFPGA)
-      }
+//      case "streaming_kafka" => {
+//        val filePath = args(1)
+//        val useFPGA = args(2).toBoolean
+//        streamingFromKafkaEndToEndBenchmark(spark, filePath, useFPGA)
+//      }
     }
 
     spark.stop()
