@@ -41,7 +41,7 @@
     <artifactId>bigdl-SPARK_2.2</artifactId>
     <version>0.6.0-SNAPSHOT</version>
     <scope>system</scope>
-    <systemPath>/root/code/BigDL/spark/dist/target/bigdl-0.6.0-SNAPSHOT-spark-1.5.1-scala-2.10.5-all-dist/lib/bigdl-0.6.0-SNAPSHOT-jar-with-dependencies.jar</systemPath>
+    <systemPath>${project.basedir}/bigdl-0.6.0-SNAPSHOT-jar-with-dependencies.jar</systemPath>
 </dependency>
 <!-- https://mvnrepository.com/artifact/org.apache.spark/spark-mllib -->
 <dependency>
