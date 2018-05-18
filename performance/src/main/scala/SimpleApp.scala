@@ -1,5 +1,7 @@
 import java.io._
 
+import com.intel.analytics.bigdl.nn.DLAEngine
+import com.intel.analytics.bigdl.tensor.Tensor
 import org.apache.spark.ml.linalg.SparseVector
 import org.apache.spark.mllib.recommendation.Rating
 import org.apache.spark.rdd.RDD
@@ -393,6 +395,10 @@ object SimpleApp {
     }
   }
 
+  def DLA_infer(imagePath : String): Unit = {
+    DLAEngine.getModel[Float]("alexnet").forward(Tensor[Float](1, 2, 3))
+  }
+
   def main(args: Array[String]) {
     val spark = SparkSession.builder.appName("Spark FPGA Json Test").master("local[1]").getOrCreate()
     args(0) match {
@@ -425,6 +431,10 @@ object SimpleApp {
         val filePath = args(1)
         val useFPGA = args(2).toBoolean
         streamingEndToEndBenchmark(spark, filePath, useFPGA)
+      }
+      case "bigdl" => {
+        val imagePath = args(1)
+        DLA_infer(imagePath)
       }
 //      case "streaming_kafka" => {
 //        val filePath = args(1)
