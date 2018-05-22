@@ -42,18 +42,19 @@ signed char* populateUnsafeRows(int count, long& buffer_size, bool useFPGAFLAG, 
 //   wasai_read_row(fpga_fd, RESULT_SIZE, &unsafeRows);
     FILE *fp;
     fp=fopen(jsonStr,'r');
-    fun(count,fp,&unsafeRows);
+    fun(count,fp, buffer_size);
     //buffer_size = wasa_row_total(fpga_fd);
     return unsafeRows;
   }
 }
 
-signed char* populateUnsafeRowFromFile(long& buffer_size, bool useFPGAFLAG, const char* filePathStr, jint filePathStrSize){
+unsigned char* populateUnsafeRowFromFile(long& buffer_size, bool useFPGAFLAG, const char* filePathStr, jint filePathStrSize){
   if (false == useFPGAFLAG) {
     return create_fake_row_from_bin_file(0,buffer_size);
   } else {
     // dma transfer to FPGA and get row back
     //unsigned char* unsafeRows = new unsigned char[RESULT_SIZE];
+
     int count = 10;
     FILE *fptr = NULL;
     fptr=fopen(filePathStr, "rb+");
@@ -64,18 +65,38 @@ signed char* populateUnsafeRowFromFile(long& buffer_size, bool useFPGAFLAG, cons
     fseek(fptr, 0, SEEK_END);
     int data_len = ftell(fptr);
 
+    //unsigned char* unsafeRows = (char*)malloc(560);
     unsigned char* unsafeRows;
-    //memset(unsafeRows, 0, RESULT_SIZE);
+    //unsigned char** p1;
+    //p1=unsafeRows;
+    //memset(unsafeRows, 0, 560);
     long start_time = currentTime();
-    fun(count,fptr,unsafeRows);
+    unsafeRows = fun(count,fptr,buffer_size);
     long end_time = currentTime();
-    cerr<<"[JNI]It spends "<<(end_time - start_time)<<" ms to convert "<<filePathStr<<"'s json strings. toal is unknown(should be a fixed size)."<<endl;
+/*
+      for(unsigned i = 0; i < 10; ++i) {
+    for(unsigned j=0; j < 56; ++j){
+      //printf("%*hhx,",2, unsafeRows[i]);
+            if (i<4){
+                  printf("%x +", unsafeRows[i*UNSAFEROWSIZE+j]);
+                        }
+                              //if (j!=0 && j%8 == 0) {
+                                    //  printf("|");
+                                          //}
+                                              }
+                                                if (i<4)
+                                                    {printf("\n");}
+                                                      }
+    */                                                  
+    cerr<<"[JNI]It spends "<<(end_time - start_time)<<" ms to convert "<<filePathStr<<"'s json strings. toal is "<<buffer_size<<endl;
     return unsafeRows;
   }
 }
 
 
 int init_accelerator(bool use_hardware) {
+return 1;
+/*
   if (use_hardware) {
 //    fpga_fd = wasai_init(FPGA_FD_PATH);
     if (fpga_fd == -1) {
@@ -85,6 +106,7 @@ int init_accelerator(bool use_hardware) {
   } else {
     return 1;
   }
+*/
 }
 
 int fourCharstoInt(char* buffer) {
@@ -132,15 +154,15 @@ unsigned int getFieldTypeBits(jint fieldcount, jint* fieldTypes) {
 void set_schema(const char* fieldNames, jint strSize, jint* fieldTypes) {
  //split fieldNames str with ","
  // only support 4 field
-  int typeBits = getFieldTypeBits(MAX_FIELDS, fieldTypes);
+//  int typeBits = getFieldTypeBits(MAX_FIELDS, fieldTypes);
   //cerr<<"[JNI]typeBits is: 0b"<<std::bitset<MAX_FIELDS>(typeBits)<<endl;
 
   //wasai_setschema(fpga_fd, typeBits);
-  int field_index = 0;
-  char* pch = strtok( const_cast<char *>(fieldNames), ",");
-  int number_count = 4;
-  unsigned int* fourAscii = new unsigned int[number_count];
-  memset(fourAscii, 0, number_count*4);
+//  int field_index = 0;
+//  char* pch = strtok( const_cast<char *>(fieldNames), ",");
+//  int number_count = 4;
+//  unsigned int* fourAscii = new unsigned int[number_count];
+//  memset(fourAscii, 0, number_count*4);
 /*
   while (pch != NULL && field_index < MAX_FIELDS) {
     cerr<<"[JNI]fieldName"<<field_index<<":"<<pch<<endl;
@@ -163,7 +185,8 @@ void set_schema(const char* fieldNames, jint strSize, jint* fieldTypes) {
 
 JNIEXPORT jboolean JNICALL Java_org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl_setSchema
   (JNIEnv *env, jobject obj, jstring schemaFieldNames, jintArray schemaFieldTypes) {
-  //cerr<<"[JNI]call setSchema - this method try init FPGA devices and set schema"<<endl;
+  cerr<<"[JNI]call setSchema - this method try init FPGA devices and set schema"<<endl;
+/*
   if (false == USE_FPGA_FLAG) {
     //cerr<<"[JNI]Fake row data generation doesn't needs to set_schema"<<endl;
     return true;
@@ -177,7 +200,8 @@ JNIEXPORT jboolean JNICALL Java_org_apache_spark_sql_execution_datasources_json_
   //cerr<<"Got fieldNames from scala: "<<fieldNames<<endl;
   jint fieldNamesStrsize = env->GetStringLength(schemaFieldNames);
   jint* fieldTypes = env->GetIntArrayElements(schemaFieldTypes, 0);
-  set_schema(fieldNames, fieldNamesStrsize, fieldTypes);
+  //set_schema(fieldNames, fieldNamesStrsize, fieldTypes);
+*/
   return true;
 }
 
@@ -224,18 +248,21 @@ JNIEXPORT jlongArray JNICALL Java_org_apache_spark_sql_execution_datasources_jso
 
 JNIEXPORT jlongArray JNICALL Java_org_apache_spark_sql_execution_datasources_json_FpgaJsonParserImpl_parseJson3
   (JNIEnv *env, jobject obj, jstring filepath_str) {
-  //cerr<<"[JNI]call parseJson2 - this method return long pointer address and size"<<endl;
+  cerr<<"[JNI]call parseJson3 - this method return long pointer address and size"<<endl;
   const char* filePath = env->GetStringUTFChars(filepath_str, 0);
   jint filePathSize = env->GetStringLength(filepath_str);
   int count = 10;
   long buffer_size = 0;
-  signed char *unsafeRows = populateUnsafeRowFromFile(buffer_size, USE_FPGA_FLAG, filePath, filePathSize);
+  cerr<<"[JNI] here before populate!"<<endl;
+  unsigned char *unsafeRows = populateUnsafeRowFromFile(buffer_size, USE_FPGA_FLAG, filePath, filePathSize);
+  cerr<<"[JNI] here after populate!"<<endl;
   jlongArray ret = env->NewLongArray(2);
   jlong address = (jlong)((void*)(unsafeRows));
   jlong* addr = &address;
-  jlong* total_size = 560;
-  cerr<<"[JNI]the buffer addr is "<<std::dec<<address<<endl;
-  cerr<<"[JNI]unsafeRow buffer size is "<<std::dec<< *total_size << endl;
+  //buffer_size = 560L;
+  jlong* total_size = &buffer_size;
+  cerr<<"[JNI--]the buffer addr is "<<std::dec<<address<<endl;
+  cerr<<"[JNI--]unsafeRow buffer size is "<<std::dec<< *total_size << endl;
   env->SetLongArrayRegion(ret, 0, 1, addr);
   env->SetLongArrayRegion(ret, 1, 1, total_size);
   if (true == USE_FPGA_FLAG) {
@@ -255,6 +282,19 @@ int main(int argc, char *argv[]) {
   long buffer_size = 0;
   //create_fake_row_from_bin_file(0, buffer_size);
   init_accelerator(USE_FPGA_FLAG);
-  populateUnsafeRowFromFile(buffer_size, true, argv[1], 26);
+  char* unsafeRows = populateUnsafeRowFromFile(buffer_size, true, "../performance/3000000.json", 27);
+  for(unsigned i = 0; i < 10; ++i) {
+    for(unsigned j = 0; j < 56; ++j){
+      //printf("%*hhx,",2, unsafeRows[i]);
+      if (i<10){
+        printf("%x +", unsafeRows[i*UNSAFEROWSIZE+j]);
+      }
+    }
+  
+  if (i<10)
+    {printf("\n");}
+  }
+ 
+
   return 0;
 }

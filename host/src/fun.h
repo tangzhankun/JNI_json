@@ -6,10 +6,11 @@
 #include <string>
 #include "CL/opencl.h"
 #include "AOCLUtils/aocl_utils.h"
+#include <time.h>
 
 using namespace aocl_utils;
 // we use {"a":"1","b":"1"} as a sample fix size row
-#define UNSAFEROWSIZE 1024
+#define UNSAFEROWSIZE 56
 // OpenCL runtime configuration
 cl_platform_id platform = NULL;
 unsigned num_devices = 4;
@@ -22,20 +23,21 @@ cl_kernel kernel; // num_devices elements
 cl_mem input_json_buf;
 cl_mem output_unsaferow_buf;
 
-unsigned json_lines_count = 10;
+//unsigned json_lines_count = 10;
+unsigned lines_count;
 // {"a":"a","b":"b"}, maximum value size to 8 bytes
 unsigned json_line_column_count = 2;
 unsigned unsafe_row_size = UNSAFEROWSIZE;//8 + (8 + 8) * json_line_column_count;
 unsigned json_file_size = 0;
 unsigned json_line_size = 0;
 scoped_aligned_ptr<char> input_json_str;
-scoped_aligned_ptr<char> output_unsafe_row_binary;
+scoped_aligned_ptr<unsigned char> output_unsafe_row_binary;
 // Function prototypes
 float rand_float();
 bool init_opencl();
-char* run();
+unsigned char* run();
 void cleanup();
-int fun(unsigned json_lines_count, FILE *fp, char *unsafeRows);
+unsigned char* fun(unsigned json_lines_count, FILE *fp, long& buffer_size);
 /*
 int main(int argc, char **argv) {
 std::string jsonFilePath;
@@ -60,14 +62,20 @@ std::string jsonFilePath;
 
 */
 // Entry point.
-int fun(unsigned json_lines_count, FILE *fp,char **unsafeRows) 
+unsigned char* fun(unsigned json_lines_count, FILE *fp, long &buffer_size) 
 {
     fseek(fp, 0L, SEEK_END);
     json_file_size = ftell(fp);
     rewind(fp);
     input_json_str.reset(json_file_size);
     printf("json file size: %d. \n", json_file_size);
+    clock_t start,end;
+    double cost;
+    start=clock();
     unsigned read_size = fread(input_json_str.get(), sizeof(char), json_file_size, fp); 
+    end=clock();
+    cost=(double)(end-start)/CLOCKS_PER_SEC;
+    printf("fread=%f\n",cost);
     if (json_file_size != read_size) {
       // Something went wrong, throw away the memory and set
       // the buffer to NULL
@@ -75,20 +83,24 @@ int fun(unsigned json_lines_count, FILE *fp,char **unsafeRows)
       exit(-2);
     }
     fclose(fp);
-    json_line_size = json_file_size/json_lines_count;
+    json_line_size=512;
+    json_lines_count = json_file_size/512;
+    lines_count=json_lines_count;
+    printf("lines_count=%d\n",json_lines_count);
+    buffer_size = long(json_lines_count) * 56;
     output_unsafe_row_binary.reset(json_lines_count * UNSAFEROWSIZE);
     //printf("after_reset=%d\n",output_unsafe_row_binary.get()==NULL?1:0); 
   // Initialize OpenCL.
   if(!init_opencl()) {
     return -1;
   }
-
+  char * unsafeRows;
   // Run the kernel.
   *unsafeRows = run();
 
   // Free the resources allocated
-  cleanup();
-  return 0;
+  //cleanup();
+  return unsafeRows;
 }
 
 /////// HELPER FUNCTIONS ///////
@@ -167,14 +179,14 @@ bool init_opencl() {
 
   // Output buffer. This is unsaferow buffer, We assign this buffer to the first bank of global memory,
   output_unsaferow_buf = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_BANK_2_ALTERA,
-      json_lines_count*unsafe_row_size, NULL, &status);
+      lines_count*unsafe_row_size, NULL, &status);
   checkError(status, "Failed to create buffer for unsaferow output");
 
   return true;
 }
 
 
-char* run() {
+unsigned char* run() {
   cl_int status;
 
   // Transfer inputs to each device. Each of the host buffers supplied to
@@ -199,8 +211,8 @@ char* run() {
 
     status = clSetKernelArg(kernel, argi++, sizeof(cl_mem), &input_json_buf);
     checkError(status, "Failed to set argument(input json buffer) %d", argi - 1);
-
-    status = clSetKernelArg(kernel, argi++, sizeof(json_line_size), &json_line_size);
+    //printf("json_linescount=%d\n",json_lines_count);
+    status = clSetKernelArg(kernel, argi++, sizeof(lines_count), &lines_count);
     checkError(status, "Failed to set argument(json line size) %d", argi - 1);
 
     status = clSetKernelArg(kernel, argi++, sizeof(cl_mem), &output_unsaferow_buf);
@@ -215,8 +227,9 @@ char* run() {
     //
     // Events are used to ensure that the kernel is not launched until
     // the writes to the input buffers have completed.
-    const size_t global_work_size[1] = {json_lines_count};
-    const size_t local_work_size[1]  = {json_lines_count};
+    const size_t global_work_size[1] = {1};
+    size_t local_work_size[1]={1};
+  
     //const size_t global_work_size[1] = {3500000};
     //const size_t local_work_size[1]  = {35};
     printf("Launching for device %d (global size: %zd)\n", i, global_work_size[0]);
@@ -251,7 +264,7 @@ char* run() {
   //printf("%d\n",output_unsafe_row_binary.get()==NULL?1:0);
   for(unsigned i = 0; i < num_devices; ++i) {
     status = clEnqueueReadBuffer(queue, output_unsaferow_buf, CL_TRUE,
-        0, json_lines_count * unsafe_row_size, output_unsafe_row_binary.get(), 0, NULL, NULL);
+        0, lines_count * unsafe_row_size, output_unsafe_row_binary.get(), 0, NULL, NULL);
     checkError(status, "Failed to read output matrix");
   }
 /*
@@ -265,7 +278,24 @@ char* run() {
     }
     printf("\n");
   }
+
+ printf("a=%d,b=%d",json_lines_count,UNSAFEROWSIZE);
+  for(unsigned i = 0; i < json_lines_count; ++i) {
+    for(unsigned j=0; j < UNSAFEROWSIZE; ++j){
+      //printf("%*hhx,",2, output_unsafe_row_binary[i]);
+            if (i<4){
+                  printf("%x +", output_unsafe_row_binary[i*UNSAFEROWSIZE+j]);
+                        }
+                              //if (j!=0 && j%8 == 0) {
+                                    //  printf("|");
+                                          //}
+                                              }
+                                                if (i<4)
+                                                    {printf("\n");}
+                                                      }
+                                                      
 */
+
 return output_unsafe_row_binary.get();
 
 }
