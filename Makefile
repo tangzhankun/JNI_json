@@ -55,6 +55,7 @@ CXX := g++
 
 # Target
 TARGET := libFpgaJsonParserImpl.so
+#TARGET := testProgram
 TARGET_DIR := bin
 
 # Directories
@@ -64,7 +65,7 @@ LIB_DIRS :=
 # Files
 INCS := $(wildcard host/inc/*.h ./*.h )
 SRCS := $(wildcard host/src/*.cpp common/src/AOCLUtils/*.cpp ./*.cpp )
-LIBS := rt pthread
+LIBS := rt pthread m
 
 # Make it all!
 all : $(TARGET_DIR)/$(TARGET)
