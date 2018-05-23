@@ -396,11 +396,10 @@ object SimpleApp {
   }
 
   def DLA_infer(imagePath : String): Unit = {
-    val imagePath = "/root/imagepath"
     val modelPath = "/root/modelpath"
     DLAEngine.setModelPath(modelPath)
     DLAEngine.setImagePath(imagePath)
-    DLAEngine.getModel[Float]("alext").forward(DLAEngine.getImages)
+    DLAEngine.getModel[Float]("squeezenet").forward(DLAEngine.getImages)
   }
 
   def main(args: Array[String]) {
