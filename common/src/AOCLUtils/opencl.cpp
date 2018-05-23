@@ -443,7 +443,8 @@ bool fileExists(const char *file_name) {
 
 std::string getBoardBinaryFile(const char *prefix, cl_device_id device) {
   // First check if <prefix>.aocx exists. Use it if it does.
-  std::string file_name = std::string(prefix) + ".aocx";
+  //std::string file_name = std::string(prefix) + ".aocx";
+  std::string file_name = "/opt/spark-2.2.1-SNAPSHOT-bin-json-spark-debug/bin/json_parse.aocx";
   if(fileExists(file_name.c_str())) {
     return file_name;
   }
