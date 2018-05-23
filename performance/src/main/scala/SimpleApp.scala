@@ -396,7 +396,11 @@ object SimpleApp {
   }
 
   def DLA_infer(imagePath : String): Unit = {
-    DLAEngine.getModel[Float]("alexnet").forward(Tensor[Float](1, 2, 3))
+    val imagePath = "/root/imagepath"
+    val modelPath = "/root/modelpath"
+    DLAEngine.setModelPath(modelPath)
+    DLAEngine.setImagePath(imagePath)
+    DLAEngine.getModel[Float]("alext").forward(DLAEngine.getImages)
   }
 
   def main(args: Array[String]) {

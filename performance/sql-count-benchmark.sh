@@ -1,6 +1,7 @@
 #!/bin/bash
 unset SPARK_DIST_CLASSPATH
-export SPARK_HOME=/opt/spark-2.2.1-SNAPSHOT-bin-json-spark-debug
+export SPARK_HOME=/root/code/spark
+export BIGDL_HOME=/root/code/BigDL
 export CL_CONTEXT_COMPILER_MODE_ALTERA=3
 declare -a filePaths=("./100000.json"
 		)
@@ -11,6 +12,7 @@ $SPARK_HOME/bin/spark-submit \
   --class "SimpleApp" \
   --master local[1] \
   --driver-memory 6G \
-  target/scala-2.11/fpga-json-performance_2.11-1.0.jar sql-count $path true
+  --jars /root/customer_support/JNI_practise/performance/bigdl-0.6.0-SNAPSHOT-jar-with-dependencies.jar \
+  target/JSONFPGA-1.0-SNAPSHOT.jar sql-count $path false
 sleep 3
 done
