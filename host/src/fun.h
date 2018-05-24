@@ -96,7 +96,7 @@ unsigned char* fun(unsigned json_lines_count, FILE *fp, long &buffer_size)
   }
   char * unsafeRows;
   // Run the kernel.
-  *unsafeRows = run();
+  unsafeRows = run();
 
   // Free the resources allocated
   //cleanup();
